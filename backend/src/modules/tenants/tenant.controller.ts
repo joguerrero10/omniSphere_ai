@@ -13,6 +13,7 @@ import { Roles } from '../../common/decorators/roles.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { TenantRateLimitGuard } from '../../common/guards/tenant-rate-limit.guard';
+import { CurrentUserPayload } from '../../common/interface/current-user.interface';
 import { CreateTenantDto } from './dto/create-tenant.dto';
 import { UpdateTenantDto } from './dto/update-tenant.dto';
 import { TenantsService } from './tenant.service';
@@ -27,7 +28,7 @@ export class TenantsController {
   @Roles('ADMIN_SISTEMA')
   create(
     @Body() dto: CreateTenantDto,
-    @CurrentUser() user,
+    @CurrentUser() user: CurrentUserPayload,
   ) {
     return this.tenantsService.create(dto, user.userId);
   }
@@ -49,7 +50,7 @@ export class TenantsController {
   update(
     @Param('id') id: string,
     @Body() dto: UpdateTenantDto,
-    @CurrentUser() user,
+    @CurrentUser() user: CurrentUserPayload,
   ) {
     return this.tenantsService.update(id, dto, user.userId);
   }
@@ -58,7 +59,7 @@ export class TenantsController {
   @Roles('ADMIN_SISTEMA')
   remove(
     @Param('id') id: string,
-    @CurrentUser() user,
+    @CurrentUser() user: CurrentUserPayload,
   ) {
     return this.tenantsService.remove(id, user.userId);
   }

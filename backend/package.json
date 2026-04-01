@@ -31,10 +31,10 @@
     "passport-local": "^1.0.0"
   },
   "devDependencies": {
+    "@nestjs/testing": "^11.1.17",
     "@types/bcrypt": "^6.0.0",
     "@types/body-parser": "^1.19.6",
     "@types/jest": "^30.0.0",
-    "@types/mocha": "^10.0.10",
     "@types/passport-local": "^1.0.38",
     "prisma": "^5.22.0"
   }
