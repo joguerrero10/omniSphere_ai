@@ -6,6 +6,7 @@ import { TenantsService } from './tenant.service';
 
 @Module({
   controllers: [TenantsController],
-  providers: [TenantsService, PrismaService, AuditService]
+  providers: [TenantsService, PrismaService, AuditService],
+  exports: [TenantsService],
 })
 export class TenantModule { }

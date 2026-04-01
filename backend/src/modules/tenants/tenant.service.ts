@@ -60,4 +60,15 @@ export class TenantsService {
 
     return tenant;
   }
+
+  async createTenant(name: string, createdBy: string) {
+    const tenant = await this.prisma.tenant.create({
+      data: {
+        name,
+        createdBy,
+        plan: 'FREE', // Plan por defecto
+      },
+    });
+    return tenant;
+  }
 }
