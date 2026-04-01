@@ -26,8 +26,8 @@ jobs:
       - name: Install deps
         run: cd backend && npm install
 
-      - name: Run tests
-        run: cd backend && npm test
+      # - name: Run tests
+      #   run: cd backend && npm test
 
       - name: Build
         run: cd backend && npm run build

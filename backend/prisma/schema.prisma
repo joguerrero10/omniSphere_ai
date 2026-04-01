@@ -8,9 +8,20 @@ generator client {
 }
 
 model Tenant {
-  id        String  @id @default(cuid())
-  name      String
-  users     User[]
+  id         String   @id @default(uuid())
+  name       String
+  plan       String
+  metadata   String?
+  createdAt  DateTime @default(now())
+  createdBy  String
+  users      User[]
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  action    String
+  tenantId  String
+  userId    String?
   createdAt DateTime @default(now())
 }
 
