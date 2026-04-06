@@ -1,9 +1,26 @@
 import { Injectable } from '@nestjs/common';
-import { ThrottlerGuard } from '@nestjs/throttler';
+import { Reflector } from '@nestjs/core';
+import {
+  InjectThrottlerOptions,
+  InjectThrottlerStorage,
+  ThrottlerGuard,
+  ThrottlerModuleOptions,
+  ThrottlerStorage,
+} from '@nestjs/throttler';
 import { Request } from 'express';
 
 @Injectable()
 export class CustomThrottlerGuard extends ThrottlerGuard {
+  constructor(
+    @InjectThrottlerOptions()
+    protected readonly options: ThrottlerModuleOptions,
+    @InjectThrottlerStorage()
+    protected readonly storageService: ThrottlerStorage,
+    protected readonly reflector: Reflector,
+  ) {
+    super(options, storageService, reflector);
+  }
+
   protected async getTracker(req: Request): Promise<string> {
     const user = req.user as
       | {

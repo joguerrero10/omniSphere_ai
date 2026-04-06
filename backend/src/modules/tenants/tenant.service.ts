@@ -37,9 +37,9 @@ export class TenantsService {
     });
   }
 
-  async findOne(id: string) {
+  async findByTenantId(tenantId: string) {
     const tenant = await this.prisma.tenant.findUnique({
-      where: { id },
+      where: { id: tenantId },
     });
 
     if (!tenant) {
@@ -50,7 +50,7 @@ export class TenantsService {
   }
 
   async update(id: string, dto: UpdateTenantDto, userId: string) {
-    await this.findOne(id);
+    await this.findByTenantId(id);
 
     const data: Prisma.TenantUpdateInput = {
       ...(dto.name !== undefined ? { name: dto.name } : {}),
@@ -71,7 +71,7 @@ export class TenantsService {
   }
 
   async remove(id: string, userId: string) {
-    await this.findOne(id);
+    await this.findByTenantId(id);
 
     const tenant = await this.prisma.tenant.delete({
       where: { id },
@@ -82,15 +82,4 @@ export class TenantsService {
     return tenant;
   }
 
-  async createTenant(name: string, createdBy: string) {
-    const tenant = await this.prisma.tenant.create({
-      data: {
-        name,
-        createdBy,
-        plan: 'FREE',
-      },
-    });
-
-    return tenant;
-  }
 }

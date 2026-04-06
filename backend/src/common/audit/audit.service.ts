@@ -5,7 +5,7 @@ import { PrismaService } from '../../database/prisma.service';
 export class AuditService {
   private readonly logger = new Logger(AuditService.name);
 
-  constructor(private prisma: PrismaService) { }
+  constructor(private readonly prisma: PrismaService) { }
 
   async log(action: string, tenantId: string, userId?: string) {
     try {
@@ -16,8 +16,11 @@ export class AuditService {
           userId,
         },
       });
-    } catch (err) {
-      this.logger.error('Audit error', err instanceof Error ? err.stack : undefined);
+    } catch (error) {
+      this.logger.error(
+        'Audit error',
+        error instanceof Error ? error.stack : undefined,
+      );
     }
   }
 }
