@@ -1,23 +1,29 @@
-import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
-import { RateLimitMiddleware } from './common/middleware/rate-limit.middleware';
+import { Module } from '@nestjs/common';
+import { APP_GUARD } from '@nestjs/core/constants';
+import { ThrottlerModule } from '@nestjs/throttler';
+import { CustomThrottlerGuard } from './common/guards/custom-throttler.guard';
 import { AppConfigModule } from './config/config.module';
 import { AuthModule } from './modules/auth/auth.module';
-import { TenantModule } from './modules/tenants/tenant.module';
-
+import { TenantsModule } from './modules/tenants/tenant.module';
 
 @Module({
   imports: [
     AppConfigModule,
+    ThrottlerModule.forRoot([
+      {
+        ttl: 60_000,
+        limit: 20,
+      },
+    ]),
     AuthModule,
-    TenantModule,
+    TenantsModule,
   ],
   controllers: [],
-  providers: [],
+  providers: [
+    {
+      provide: APP_GUARD,
+      useClass: CustomThrottlerGuard,
+    },
+  ],
 })
-export class AppModule implements NestModule {
-  configure(consumer: MiddlewareConsumer) {
-    consumer
-      .apply(RateLimitMiddleware)
-      .forRoutes('*');
-  }
-}
+export class AppModule { }

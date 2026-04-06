@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { AuditService } from '../../common/audit/audit.service';
 import { PrismaService } from '../../database/prisma.service';
 import { CreateTenantDto } from './dto/create-tenant.dto';
@@ -7,16 +8,22 @@ import { UpdateTenantDto } from './dto/update-tenant.dto';
 @Injectable()
 export class TenantsService {
   constructor(
-    private prisma: PrismaService,
-    private audit: AuditService,
+    private readonly prisma: PrismaService,
+    private readonly audit: AuditService,
   ) { }
 
   async create(dto: CreateTenantDto, userId: string) {
+    const data: Prisma.TenantCreateInput = {
+      name: dto.name,
+      plan: dto.plan,
+      createdBy: userId,
+      ...(dto.metadata !== undefined
+        ? { metadata: dto.metadata as Prisma.InputJsonValue }
+        : {}),
+    };
+
     const tenant = await this.prisma.tenant.create({
-      data: {
-        ...dto,
-        createdBy: userId,
-      },
+      data,
     });
 
     await this.audit.log(`Tenant created: ${tenant.name}`, tenant.id, userId);
@@ -35,23 +42,37 @@ export class TenantsService {
       where: { id },
     });
 
-    if (!tenant) throw new NotFoundException('Tenant not found');
+    if (!tenant) {
+      throw new NotFoundException('Tenant not found');
+    }
 
     return tenant;
   }
 
   async update(id: string, dto: UpdateTenantDto, userId: string) {
+    await this.findOne(id);
+
+    const data: Prisma.TenantUpdateInput = {
+      ...(dto.name !== undefined ? { name: dto.name } : {}),
+      ...(dto.plan !== undefined ? { plan: dto.plan } : {}),
+      ...(dto.metadata !== undefined
+        ? { metadata: dto.metadata as Prisma.InputJsonValue }
+        : {}),
+    };
+
     const tenant = await this.prisma.tenant.update({
       where: { id },
-      data: dto,
+      data,
     });
 
-    await this.audit.log(`Tenant updated: ${tenant.name}`, id, userId);
+    await this.audit.log(`Tenant updated: ${tenant.name}`, tenant.id, userId);
 
     return tenant;
   }
 
   async remove(id: string, userId: string) {
+    await this.findOne(id);
+
     const tenant = await this.prisma.tenant.delete({
       where: { id },
     });
@@ -66,9 +87,10 @@ export class TenantsService {
       data: {
         name,
         createdBy,
-        plan: 'FREE', // Plan por defecto
+        plan: 'FREE',
       },
     });
+
     return tenant;
   }
 }

@@ -13,9 +13,6 @@ export class AuthService {
     private readonly tenantService: TenantsService
   ) { }
 
-  // -----------------------------
-  // LOGIN
-  // -----------------------------
   async login(email: string, password: string) {
     const user = await this.prisma.user.findUnique({
       where: { email },
@@ -53,43 +50,59 @@ export class AuthService {
     };
   }
 
-  // -----------------------------
-  // REGISTER
-  // -----------------------------
   async register(data: { email: string; password: string; tenantName: string }) {
     const { email, password, tenantName } = data;
 
-    // Validar si el usuario ya existe
     const existingUser = await this.prisma.user.findUnique({ where: { email } });
     if (existingUser) {
       throw new BadRequestException('User with this email already exists');
     }
 
-    // 1️⃣ Hashear contraseña
-    const passwordHash = await bcrypt.hash(password, 10);
+    const passwordHash = await bcrypt.hash(password, 12);
 
-    // 2️⃣ Crear tenant automáticamente
-    const tenant = await this.tenantService.createTenant(tenantName, email);
-    if (!tenant) {
-      throw new BadRequestException('Error creating tenant');
-    }
+    const result = await this.prisma.$transaction(async (tx) => {
+      const tenant = await tx.tenant.create({
+        data: {
+          name: tenantName,
+          createdBy: email,
+          plan: 'FREE',
+        },
+      });
 
-    // 3️⃣ Crear usuario vinculado al tenant
-    const user = await this.prisma.user.create({
-      data: {
-        email,
-        passwordHash,
-        tenantId: tenant.id
-      }
+      const role = await tx.role.create({
+        data: {
+          name: 'ADMIN_TENANT',
+          tenantId: tenant.id,
+        },
+      });
+
+      const user = await tx.user.create({
+        data: {
+          email,
+          passwordHash,
+          tenantId: tenant.id,
+          isActive: true,
+        },
+      });
+
+      await tx.userRole.create({
+        data: {
+          userId: user.id,
+          roleId: role.id,
+        },
+      });
+
+      return { tenant, user };
     });
 
     return {
       message: 'User registered successfully',
       user: {
-        id: user.id,
-        email: user.email,
-        tenantId: tenant.id
-      }
+        id: result.user.id,
+        email: result.user.email,
+        tenantId: result.tenant.id,
+        roles: ['ADMIN_TENANT'],
+      },
     };
   }
 }
