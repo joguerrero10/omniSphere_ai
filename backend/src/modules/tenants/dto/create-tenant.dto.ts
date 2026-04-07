@@ -1,13 +1,16 @@
-import { IsOptional, IsString } from 'class-validator';
+import { IsEnum, IsObject, IsOptional, IsString, MaxLength } from 'class-validator';
+import { TenantPlan } from '../enum/tenant-plan';
 
 export class CreateTenantDto {
   @IsString()
+  @MaxLength(120)
   name: string;
 
   @IsString()
+  @IsEnum(TenantPlan)
   plan: string;
 
   @IsOptional()
-  @IsString()
-  metadata?: string;
+  @IsObject()
+  metadata?: Record<string, unknown>;
 }

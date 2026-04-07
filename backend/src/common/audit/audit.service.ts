@@ -1,9 +1,11 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service';
 
 @Injectable()
 export class AuditService {
-  constructor(private prisma: PrismaService) { }
+  private readonly logger = new Logger(AuditService.name);
+
+  constructor(private readonly prisma: PrismaService) { }
 
   async log(action: string, tenantId: string, userId?: string) {
     try {
@@ -14,8 +16,11 @@ export class AuditService {
           userId,
         },
       });
-    } catch (err) {
-      console.error('Audit error:', err);
+    } catch (error) {
+      this.logger.error(
+        'Audit error',
+        error instanceof Error ? error.stack : undefined,
+      );
     }
   }
 }

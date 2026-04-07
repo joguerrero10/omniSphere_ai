@@ -7,14 +7,23 @@ generator client {
   provider = "prisma-client-js"
 }
 
+enum TenantPlan {
+  FREE
+  PRO
+  ENTERPRISE
+}
+
 model Tenant {
-  id         String   @id @default(uuid())
+  id         String    @id @default(uuid())
   name       String
-  plan       String
-  metadata   String?
-  createdAt  DateTime @default(now())
+  plan       TenantPlan
+  metadata   Json?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
   createdBy  String
   users      User[]
+  roles      Role[]
+  auditLogs  AuditLog[]
 }
 
 model AuditLog {
@@ -23,22 +32,34 @@ model AuditLog {
   tenantId  String
   userId    String?
   createdAt DateTime @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+  user   User?  @relation(fields: [userId], references: [id])
 }
 
 model User {
-  id           String   @id @default(cuid())
-  email        String   @unique
+  id           String      @id @default(cuid())
+  email        String      @unique
   passwordHash String
   tenantId     String
-  tenant       Tenant   @relation(fields: [tenantId], references: [id])
+  isActive     Boolean     @default(true)
+  lastLoginAt  DateTime?
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  tenant       Tenant      @relation(fields: [tenantId], references: [id])
   roles        UserRole[]
-  createdAt    DateTime @default(now())
+  auditLogs    AuditLog[]
 }
 
 model Role {
-  id    String     @id @default(cuid())
-  name  String     @unique
-  users UserRole[]
+  id        String   @id @default(uuid())
+  name      String
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+  users     UserRole[]
+
+  @@unique([tenantId, name])
 }
 
 model UserRole {
@@ -48,4 +69,16 @@ model UserRole {
 
   user User @relation(fields: [userId], references: [id])
   role Role @relation(fields: [roleId], references: [id])
+
+  @@unique([userId, roleId])
+}
+
+model Flow {
+  id       String @id @default(cuid())
+  tenantId String
+}
+
+model Webhook {
+  id       String @id @default(cuid())
+  tenantId String
 }
