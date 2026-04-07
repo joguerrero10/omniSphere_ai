@@ -7,6 +7,8 @@ import { AppConfigModule } from './config/config.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { TenantsModule } from './modules/tenants/tenant.module';
 import { UsersModule } from './modules/users/users.module';
+import { FlowsModule } from './module/flows/flows.module';
+import { FlowsModule } from './modules/flows/flows.module';
 
 @Module({
   imports: [
@@ -23,6 +25,7 @@ import { UsersModule } from './modules/users/users.module';
     AuthModule,
     TenantsModule,
     UsersModule,
+    FlowsModule,
   ],
   controllers: [],
   providers: [

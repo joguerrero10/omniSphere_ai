@@ -76,9 +76,127 @@ model UserRole {
   @@unique([userId, roleId])
 }
 
+enum FlowStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum FlowNodeType {
+  MESSAGE
+  CONDITION
+  INTENT
+  WEBHOOK
+  ACTION
+  START
+  END
+}
+
+enum FlowTriggerType {
+  MANUAL
+  WEBHOOK
+  KEYWORD
+  INTENT
+}
+
 model Flow {
-  id       String @id @default(cuid())
-  tenantId String
+  id          String          @id @default(uuid())
+  tenantId    String
+  name        String
+  description String?
+  status      FlowStatus      @default(DRAFT)
+  version     Int             @default(1)
+  isActive    Boolean         @default(true)
+  createdBy   String
+  metadata    Json?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  nodes       FlowNode[]
+  edges       FlowEdge[]
+  variables   FlowVariable[]
+  triggers    FlowTrigger[]
+
+  @@index([tenantId])
+  @@index([tenantId, status])
+}
+
+model FlowNode {
+  id          String       @id @default(uuid())
+  flowId      String
+  tenantId    String
+  type        FlowNodeType
+  key         String
+  label       String
+  positionX   Float?
+  positionY   Float?
+  config      Json?
+  isEntry     Boolean      @default(false)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  flow        Flow         @relation(fields: [flowId], references: [id], onDelete: Cascade)
+
+  outgoingEdges FlowEdge[] @relation("FlowEdgeFromNode")
+  incomingEdges FlowEdge[] @relation("FlowEdgeToNode")
+
+  @@unique([flowId, key])
+  @@index([flowId])
+  @@index([tenantId])
+}
+
+model FlowEdge {
+  id           String    @id @default(uuid())
+  flowId       String
+  sourceNodeId String
+  targetNodeId String
+  label        String?
+  conditionKey String?
+  metadata     Json?
+  createdAt    DateTime  @default(now())
+
+  flow         Flow      @relation(fields: [flowId], references: [id], onDelete: Cascade)
+  sourceNode   FlowNode  @relation("FlowEdgeFromNode", fields: [sourceNodeId], references: [id], onDelete: Cascade)
+  targetNode   FlowNode  @relation("FlowEdgeToNode", fields: [targetNodeId], references: [id], onDelete: Cascade)
+
+  @@index([flowId])
+  @@index([sourceNodeId])
+  @@index([targetNodeId])
+}
+
+model FlowVariable {
+  id           String    @id @default(uuid())
+  flowId        String
+  tenantId      String
+  name          String
+  type          String
+  defaultValue  Json?
+  isRequired    Boolean   @default(false)
+  description   String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  flow          Flow      @relation(fields: [flowId], references: [id], onDelete: Cascade)
+
+  @@unique([flowId, name])
+  @@index([flowId])
+  @@index([tenantId])
+}
+
+model FlowTrigger {
+  id          String          @id @default(uuid())
+  flowId       String
+  tenantId     String
+  type         FlowTriggerType
+  isActive     Boolean         @default(true)
+  config       Json?
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+
+  flow         Flow            @relation(fields: [flowId], references: [id], onDelete: Cascade)
+
+  @@index([flowId])
+  @@index([tenantId, type])
 }
 
 model Webhook {
