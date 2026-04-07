@@ -15,7 +15,7 @@ export class AuthService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
-  ) {}
+  ) { }
 
   async register(dto: RegisterDto) {
     const existingUser = await this.prisma.user.findUnique({
@@ -39,13 +39,14 @@ export class AuthService {
 
       const role = await tx.role.create({
         data: {
-          name: ROLES.ADMIN_TENANT,
+          name: ROLES.ADMIN_SISTEMA, //cambiar a ADMIN_TENANT si se quiere asignar el rol correcto, pero por ahora se asigna ADMIN_SISTEMA para pruebas
           tenantId: tenant.id,
         },
       });
 
       const user = await tx.user.create({
         data: {
+          name: dto.name,
           email: dto.email,
           passwordHash,
           tenantId: tenant.id,
@@ -67,9 +68,10 @@ export class AuthService {
       message: "User registered successfully",
       user: {
         id: result.user.id,
+        name: result.user.name,
         email: result.user.email,
         tenantId: result.tenant.id,
-        roles: [ROLES.ADMIN_TENANT],
+        roles: [ROLES.ADMIN_SISTEMA],//cambiar roles a ADMIN_TENANT si se quiere asignar el rol correcto, pero por ahora se asigna ADMIN_SISTEMA para pruebas
       },
     };
   }

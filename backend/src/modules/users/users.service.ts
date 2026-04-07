@@ -29,7 +29,7 @@ export class UsersService {
     private readonly audit: AuditService,
     private readonly usersPolicy: UsersPolicy,
     private readonly mailService: MailService,
-  ) {}
+  ) { }
 
   private async ensureTenantAdminNotRemovingOwnLastAdminRole(
     targetUserId: string,
@@ -280,11 +280,11 @@ export class UsersService {
       tenantId: actor.tenantId,
       ...(query.search
         ? {
-            OR: [
-              { email: { contains: query.search, mode: "insensitive" } },
-              { name: { contains: query.search, mode: "insensitive" } },
-            ],
-          }
+          OR: [
+            { email: { contains: query.search, mode: "insensitive" } },
+            { name: { contains: query.search, mode: "insensitive" } },
+          ],
+        }
         : {}),
     };
 
@@ -585,7 +585,7 @@ export class UsersService {
   async inviteUser(
     actor: CurrentUserPayload,
     dto: InviteUserDto,
-  ): Promise<{ message: string }> {
+  ): Promise<{ message: string, token: string }> {
     this.usersPolicy.canCreate(actor);
 
     const existingUser = await this.prisma.user.findUnique({
@@ -636,6 +636,7 @@ export class UsersService {
 
     return {
       message: "Invitation sent successfully",
+      token,
     };
   }
 
