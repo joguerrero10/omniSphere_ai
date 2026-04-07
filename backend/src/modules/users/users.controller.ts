@@ -179,5 +179,4 @@ export class UsersController {
   acceptInvitation(@Body() dto: AcceptInvitationDto) {
     return this.usersService.acceptInvitation(dto);
   }
-
 }
