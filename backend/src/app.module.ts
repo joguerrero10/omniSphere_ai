@@ -5,6 +5,7 @@ import { CustomThrottlerGuard } from './common/guards/custom-throttler.guard';
 import { AppConfigModule } from './config/config.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { TenantsModule } from './modules/tenants/tenant.module';
+import { UsersModule } from './modules/users/users.module';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { TenantsModule } from './modules/tenants/tenant.module';
     ]),
     AuthModule,
     TenantsModule,
+    UsersModule,
   ],
   controllers: [],
   providers: [

@@ -72,3 +72,13 @@ model UserRole {
 
   @@unique([userId, roleId])
 }
+
+model Flow {
+  id       String @id @default(cuid())
+  tenantId String
+}
+
+model Webhook {
+  id       String @id @default(cuid())
+  tenantId String
+}
