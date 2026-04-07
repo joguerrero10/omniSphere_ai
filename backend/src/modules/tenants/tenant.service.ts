@@ -1,16 +1,16 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
-import { AuditService } from '../../common/audit/audit.service';
-import { PrismaService } from '../../database/prisma.service';
-import { CreateTenantDto } from './dto/create-tenant.dto';
-import { UpdateTenantDto } from './dto/update-tenant.dto';
+import { Injectable, NotFoundException } from "@nestjs/common";
+import { Prisma } from "@prisma/client";
+import { AuditService } from "../../common/audit/audit.service";
+import { PrismaService } from "../../database/prisma.service";
+import { CreateTenantDto } from "./dto/create-tenant.dto";
+import { UpdateTenantDto } from "./dto/update-tenant.dto";
 
 @Injectable()
 export class TenantsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
-  ) { }
+  ) {}
 
   async create(dto: CreateTenantDto, userId: string) {
     const data: Prisma.TenantCreateInput = {
@@ -33,7 +33,7 @@ export class TenantsService {
 
   async findAll() {
     return this.prisma.tenant.findMany({
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
     });
   }
 
@@ -43,7 +43,7 @@ export class TenantsService {
     });
 
     if (!tenant) {
-      throw new NotFoundException('Tenant not found');
+      throw new NotFoundException("Tenant not found");
     }
 
     return tenant;
@@ -81,5 +81,4 @@ export class TenantsService {
 
     return tenant;
   }
-
 }

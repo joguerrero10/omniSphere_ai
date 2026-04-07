@@ -100,42 +100,43 @@ enum FlowTriggerType {
 }
 
 model Flow {
-  id          String          @id @default(uuid())
+  id          String     @id @default(uuid())
   tenantId    String
   name        String
   description String?
-  status      FlowStatus      @default(DRAFT)
-  version     Int             @default(1)
-  isActive    Boolean         @default(true)
+  status      FlowStatus @default(DRAFT)
+  version     Int        @default(1)
+  isActive    Boolean    @default(true)
   createdBy   String
   metadata    Json?
-  createdAt   DateTime        @default(now())
-  updatedAt   DateTime        @updatedAt
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
 
-  nodes       FlowNode[]
-  edges       FlowEdge[]
-  variables   FlowVariable[]
-  triggers    FlowTrigger[]
+  nodes      FlowNode[]
+  edges      FlowEdge[]
+  variables  FlowVariable[]
+  triggers   FlowTrigger[]
+  executions FlowExecution[]
 
   @@index([tenantId])
   @@index([tenantId, status])
 }
 
 model FlowNode {
-  id          String       @id @default(uuid())
-  flowId      String
-  tenantId    String
-  type        FlowNodeType
-  key         String
-  label       String
-  positionX   Float?
-  positionY   Float?
-  config      Json?
-  isEntry     Boolean      @default(false)
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+  id        String       @id @default(uuid())
+  flowId    String
+  tenantId  String
+  type      FlowNodeType
+  key       String
+  label     String
+  positionX Float?
+  positionY Float?
+  config    Json?
+  isEntry   Boolean      @default(false)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
 
-  flow        Flow         @relation(fields: [flowId], references: [id], onDelete: Cascade)
+  flow Flow @relation(fields: [flowId], references: [id], onDelete: Cascade)
 
   outgoingEdges FlowEdge[] @relation("FlowEdgeFromNode")
   incomingEdges FlowEdge[] @relation("FlowEdgeToNode")
@@ -146,37 +147,44 @@ model FlowNode {
 }
 
 model FlowEdge {
-  id           String    @id @default(uuid())
-  flowId       String
-  sourceNodeId String
-  targetNodeId String
-  label        String?
-  conditionKey String?
-  metadata     Json?
-  createdAt    DateTime  @default(now())
+  id            String                 @id @default(uuid())
+  flowId        String
+  sourceNodeId  String
+  targetNodeId  String
+  label         String?
+  conditionType FlowEdgeConditionType?
+  intentName    String?
+  isFallback    Boolean                @default(false)
+  createdAt     DateTime               @default(now())
+  updatedAt     DateTime               @updatedAt
 
-  flow         Flow      @relation(fields: [flowId], references: [id], onDelete: Cascade)
-  sourceNode   FlowNode  @relation("FlowEdgeFromNode", fields: [sourceNodeId], references: [id], onDelete: Cascade)
-  targetNode   FlowNode  @relation("FlowEdgeToNode", fields: [targetNodeId], references: [id], onDelete: Cascade)
+  flow       Flow     @relation(fields: [flowId], references: [id], onDelete: Cascade)
+  sourceNode FlowNode @relation("FlowEdgeFromNode", fields: [sourceNodeId], references: [id], onDelete: Cascade)
+  targetNode FlowNode @relation("FlowEdgeToNode", fields: [targetNodeId], references: [id], onDelete: Cascade)
 
   @@index([flowId])
   @@index([sourceNodeId])
   @@index([targetNodeId])
 }
 
-model FlowVariable {
-  id           String    @id @default(uuid())
-  flowId        String
-  tenantId      String
-  name          String
-  type          String
-  defaultValue  Json?
-  isRequired    Boolean   @default(false)
-  description   String?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+enum FlowEdgeConditionType {
+  TRUE
+  FALSE
+}
 
-  flow          Flow      @relation(fields: [flowId], references: [id], onDelete: Cascade)
+model FlowVariable {
+  id           String   @id @default(uuid())
+  flowId       String
+  tenantId     String
+  name         String
+  type         String
+  defaultValue Json?
+  isRequired   Boolean  @default(false)
+  description  String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  flow Flow @relation(fields: [flowId], references: [id], onDelete: Cascade)
 
   @@unique([flowId, name])
   @@index([flowId])
@@ -184,19 +192,104 @@ model FlowVariable {
 }
 
 model FlowTrigger {
-  id          String          @id @default(uuid())
-  flowId       String
-  tenantId     String
-  type         FlowTriggerType
-  isActive     Boolean         @default(true)
-  config       Json?
-  createdAt    DateTime        @default(now())
-  updatedAt    DateTime        @updatedAt
+  id        String          @id @default(uuid())
+  flowId    String
+  tenantId  String
+  type      FlowTriggerType
+  isActive  Boolean         @default(true)
+  config    Json?
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
 
-  flow         Flow            @relation(fields: [flowId], references: [id], onDelete: Cascade)
+  flow Flow @relation(fields: [flowId], references: [id], onDelete: Cascade)
 
   @@index([flowId])
   @@index([tenantId, type])
+}
+
+model FlowExecution {
+  id            String              @id @default(uuid())
+  tenantId      String
+  flowId        String
+  status        FlowExecutionStatus @default(RUNNING)
+  startedAt     DateTime            @default(now())
+  finishedAt    DateTime?
+  currentNodeId String?
+  sessionId     String?
+  userId        String?
+  channel       String?
+  lastInputText String?
+  contextJson   Json?
+  errorMessage  String?
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+
+  flow      Flow                    @relation(fields: [flowId], references: [id], onDelete: Cascade)
+  steps     FlowExecutionStep[]
+  variables FlowExecutionVariable[]
+
+  @@index([tenantId, flowId])
+  @@index([sessionId])
+  @@index([userId])
+  @@index([status])
+}
+
+model FlowExecutionStep {
+  id           String                  @id @default(uuid())
+  executionId  String
+  nodeId       String
+  stepOrder    Int
+  nodeType     FlowNodeType
+  status       FlowExecutionStepStatus @default(SUCCESS)
+  inputText    String?
+  outputJson   Json?
+  errorMessage String?
+  executedAt   DateTime                @default(now())
+  createdAt    DateTime                @default(now())
+
+  execution FlowExecution @relation(fields: [executionId], references: [id], onDelete: Cascade)
+
+  @@index([executionId, stepOrder])
+  @@index([nodeId])
+}
+
+model FlowExecutionVariable {
+  id           String           @id @default(uuid())
+  executionId  String
+  key          String
+  valueType    FlowVariableType
+  valueString  String?
+  valueNumber  Float?
+  valueBoolean Boolean?
+  valueJson    Json?
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+
+  execution FlowExecution @relation(fields: [executionId], references: [id], onDelete: Cascade)
+
+  @@unique([executionId, key])
+  @@index([executionId])
+}
+
+enum FlowExecutionStatus {
+  RUNNING
+  WAITING_INPUT
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum FlowExecutionStepStatus {
+  SUCCESS
+  FAILED
+  SKIPPED
+}
+
+enum FlowVariableType {
+  STRING
+  NUMBER
+  BOOLEAN
+  JSON
 }
 
 model Webhook {

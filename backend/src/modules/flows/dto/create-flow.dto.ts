@@ -1,5 +1,11 @@
-import { FlowStatus } from '@prisma/client';
-import { IsEnum, IsNotEmpty, IsObject, IsOptional, IsString } from 'class-validator';
+import { FlowStatus } from "@prisma/client";
+import {
+  IsEnum,
+  IsNotEmpty,
+  IsObject,
+  IsOptional,
+  IsString,
+} from "class-validator";
 
 export class CreateFlowDto {
   @IsString()

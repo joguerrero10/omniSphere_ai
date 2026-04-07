@@ -1,5 +1,5 @@
-import { FlowTriggerType } from '@prisma/client';
-import { IsBoolean, IsEnum, IsObject, IsOptional } from 'class-validator';
+import { FlowTriggerType } from "@prisma/client";
+import { IsBoolean, IsEnum, IsObject, IsOptional } from "class-validator";
 
 export class CreateFlowTriggerDto {
   @IsEnum(FlowTriggerType)

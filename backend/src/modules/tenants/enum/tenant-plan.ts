@@ -1,5 +1,5 @@
 export enum TenantPlan {
-  FREE = 'FREE',
-  PRO = 'PRO',
-  ENTERPRISE = 'ENTERPRISE',
+  FREE = "FREE",
+  PRO = "PRO",
+  ENTERPRISE = "ENTERPRISE",
 }

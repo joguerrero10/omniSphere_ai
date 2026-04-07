@@ -1,11 +1,8 @@
-import { Injectable, NestMiddleware } from '@nestjs/common';
-import { NextFunction, Request, Response } from 'express';
-import { TooManyRequestsException } from '../exceptions/too-many-requests.exception';
+import { Injectable, NestMiddleware } from "@nestjs/common";
+import { NextFunction, Request, Response } from "express";
+import { TooManyRequestsException } from "../exceptions/too-many-requests.exception";
 
-const rateMap = new Map<
-  string,
-  { count: number; lastReset: number }
->();
+const rateMap = new Map<string, { count: number; lastReset: number }>();
 
 const MAX_REQUESTS_PER_MIN = 100;
 
@@ -14,20 +11,19 @@ export class RateLimitMiddleware implements NestMiddleware {
   use(req: Request, res: Response, next: NextFunction) {
     const ip =
       req.ip ||
-      req.headers['x-forwarded-for'] ||
+      req.headers["x-forwarded-for"] ||
       req.socket.remoteAddress ||
-      'unknown';
+      "unknown";
 
-    const tenantId = (req as any).user?.tenantId || 'public';
+    const tenantId = (req as any).user?.tenantId || "public";
 
     const key = `${tenantId}:${ip}`;
     const now = Date.now();
 
-    const data =
-      rateMap.get(key) ?? {
-        count: 0,
-        lastReset: now,
-      };
+    const data = rateMap.get(key) ?? {
+      count: 0,
+      lastReset: now,
+    };
 
     if (now - data.lastReset > 60000) {
       data.count = 0;

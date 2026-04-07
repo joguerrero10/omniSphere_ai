@@ -2,25 +2,25 @@ import {
   BadRequestException,
   Injectable,
   NotFoundException,
-} from '@nestjs/common';
-import { Prisma, User } from '@prisma/client';
-import * as bcrypt from 'bcrypt';
-import { randomBytes } from 'crypto';
-import { AuditService } from '../../common/audit/audit.service';
-import { RoleName, ROLES } from '../../common/constant/roles.constants';
-import { AuditContext } from '../../common/interfaces/audit-context.interface';
-import { CurrentUserPayload } from '../../common/interfaces/current-user.interface';
-import { MailService } from '../../common/mail/mail.service';
-import { PrismaService } from '../../database/prisma.service';
-import { AcceptInvitationDto } from './dto/accept-invitation.dto';
-import { AssignRolesDto } from './dto/assign-roles.dto';
-import { CreateUserDto } from './dto/create-user.dto';
-import { InviteUserDto } from './dto/invite-user.dto';
-import { QueryUsersDto } from './dto/QueryUsersDto';
-import { ResetPasswordDto } from './dto/reset-password.dto';
-import { UpdateUserDto } from './dto/update-user.dto';
-import { UserResponseDto } from './dto/user-response.dto';
-import { UsersPolicy } from './users.policy';
+} from "@nestjs/common";
+import { Prisma, User } from "@prisma/client";
+import * as bcrypt from "bcrypt";
+import { randomBytes } from "crypto";
+import { AuditService } from "../../common/audit/audit.service";
+import { RoleName, ROLES } from "../../common/constant/roles.constants";
+import { AuditContext } from "../../common/interfaces/audit-context.interface";
+import { CurrentUserPayload } from "../../common/interfaces/current-user.interface";
+import { MailService } from "../../common/mail/mail.service";
+import { PrismaService } from "../../database/prisma.service";
+import { AcceptInvitationDto } from "./dto/accept-invitation.dto";
+import { AssignRolesDto } from "./dto/assign-roles.dto";
+import { CreateUserDto } from "./dto/create-user.dto";
+import { InviteUserDto } from "./dto/invite-user.dto";
+import { QueryUsersDto } from "./dto/QueryUsersDto";
+import { ResetPasswordDto } from "./dto/reset-password.dto";
+import { UpdateUserDto } from "./dto/update-user.dto";
+import { UserResponseDto } from "./dto/user-response.dto";
+import { UsersPolicy } from "./users.policy";
 
 @Injectable()
 export class UsersService {
@@ -29,7 +29,7 @@ export class UsersService {
     private readonly audit: AuditService,
     private readonly usersPolicy: UsersPolicy,
     private readonly mailService: MailService,
-  ) { }
+  ) {}
 
   private async ensureTenantAdminNotRemovingOwnLastAdminRole(
     targetUserId: string,
@@ -57,7 +57,7 @@ export class UsersService {
     });
 
     if (!currentUser) {
-      throw new NotFoundException('User not found');
+      throw new NotFoundException("User not found");
     }
 
     const currentRoles = currentUser.roles.map(
@@ -87,7 +87,7 @@ export class UsersService {
 
     if (tenantAdminsCount <= 1) {
       throw new BadRequestException(
-        'You cannot remove your own last ADMIN_TENANT role',
+        "You cannot remove your own last ADMIN_TENANT role",
       );
     }
   }
@@ -117,7 +117,7 @@ export class UsersService {
     });
 
     if (!currentUser) {
-      throw new NotFoundException('User not found');
+      throw new NotFoundException("User not found");
     }
 
     const currentRoles = currentUser.roles.map(
@@ -144,12 +144,14 @@ export class UsersService {
 
     if (tenantAdminsCount <= 1) {
       throw new BadRequestException(
-        'You cannot deactivate your own account as the last ADMIN_TENANT',
+        "You cannot deactivate your own account as the last ADMIN_TENANT",
       );
     }
   }
 
-  private mapUserResponse(user: User & { roles?: { role: { name: string } }[] }): UserResponseDto {
+  private mapUserResponse(
+    user: User & { roles?: { role: { name: string } }[] },
+  ): UserResponseDto {
     return {
       id: user.id,
       email: user.email,
@@ -175,7 +177,7 @@ export class UsersService {
     });
 
     if (existingUser) {
-      throw new BadRequestException('User with this email already exists');
+      throw new BadRequestException("User with this email already exists");
     }
 
     const passwordHash = await bcrypt.hash(dto.password, 12);
@@ -240,7 +242,7 @@ export class UsersService {
     });
 
     if (!createdUser) {
-      throw new BadRequestException('User could not be created');
+      throw new BadRequestException("User could not be created");
     }
 
     await this.audit.log(
@@ -278,11 +280,11 @@ export class UsersService {
       tenantId: actor.tenantId,
       ...(query.search
         ? {
-          OR: [
-            { email: { contains: query.search, mode: 'insensitive' } },
-            { name: { contains: query.search, mode: 'insensitive' } },
-          ],
-        }
+            OR: [
+              { email: { contains: query.search, mode: "insensitive" } },
+              { name: { contains: query.search, mode: "insensitive" } },
+            ],
+          }
         : {}),
     };
 
@@ -297,7 +299,7 @@ export class UsersService {
           },
         },
         orderBy: {
-          createdAt: 'desc',
+          createdAt: "desc",
         },
         skip,
         take: limit,
@@ -332,13 +334,16 @@ export class UsersService {
     });
 
     if (!user) {
-      throw new NotFoundException('User not found');
+      throw new NotFoundException("User not found");
     }
 
     return this.mapUserResponse(user);
   }
 
-  async findOneByTenant(id: string, actor: CurrentUserPayload): Promise<UserResponseDto> {
+  async findOneByTenant(
+    id: string,
+    actor: CurrentUserPayload,
+  ): Promise<UserResponseDto> {
     const user = await this.prisma.user.findFirst({
       where: {
         id,
@@ -354,7 +359,7 @@ export class UsersService {
     });
 
     if (!user) {
-      throw new NotFoundException('User not found');
+      throw new NotFoundException("User not found");
     }
 
     return this.mapUserResponse(user);
@@ -401,21 +406,25 @@ export class UsersService {
     } catch (error) {
       if (
         error instanceof Prisma.PrismaClientKnownRequestError &&
-        error.code === 'P2002'
+        error.code === "P2002"
       ) {
-        throw new BadRequestException('Email already in use');
+        throw new BadRequestException("Email already in use");
       }
       throw error;
     }
   }
 
-  async remove(id: string, actor: CurrentUserPayload, auditContext?: AuditContext,): Promise<{ message: string }> {
+  async remove(
+    id: string,
+    actor: CurrentUserPayload,
+    auditContext?: AuditContext,
+  ): Promise<{ message: string }> {
     this.usersPolicy.canDelete(actor);
 
     const user = await this.ensureSameTenantUser(id, actor.tenantId);
 
     if (user.id === actor.userId) {
-      throw new BadRequestException('You cannot delete your own account');
+      throw new BadRequestException("You cannot delete your own account");
     }
 
     await this.ensureTenantAdminNotDeactivatingSelfAsLastAdmin(id, actor);
@@ -426,7 +435,6 @@ export class UsersService {
         isActive: false,
       },
     });
-
 
     await this.audit.log(
       `User deactivated: ${user.email}`,
@@ -439,7 +447,7 @@ export class UsersService {
     );
 
     return {
-      message: 'User deactivated successfully',
+      message: "User deactivated successfully",
     };
   }
 
@@ -511,7 +519,7 @@ export class UsersService {
     });
 
     if (!updatedUser) {
-      throw new NotFoundException('User not found');
+      throw new NotFoundException("User not found");
     }
 
     await this.audit.log(
@@ -555,7 +563,7 @@ export class UsersService {
     );
 
     return {
-      message: 'Password reset successfully',
+      message: "Password reset successfully",
     };
   }
 
@@ -568,7 +576,7 @@ export class UsersService {
     });
 
     if (!user) {
-      throw new NotFoundException('User not found');
+      throw new NotFoundException("User not found");
     }
 
     return user;
@@ -585,7 +593,7 @@ export class UsersService {
     });
 
     if (existingUser) {
-      throw new BadRequestException('User with this email already exists');
+      throw new BadRequestException("User with this email already exists");
     }
 
     const rolesToAssign: RoleName[] =
@@ -593,7 +601,7 @@ export class UsersService {
 
     this.usersPolicy.canAssignRoles(actor, rolesToAssign);
 
-    const token = randomBytes(32).toString('hex');
+    const token = randomBytes(32).toString("hex");
     const expiresAt = new Date(Date.now() + 1000 * 60 * 60 * 24);
 
     const invitation = await this.prisma.userInvitation.create({
@@ -613,9 +621,7 @@ export class UsersService {
         where: { id: invitation.id },
       });
 
-      throw new BadRequestException(
-        'Invitation could not be sent by email',
-      );
+      throw new BadRequestException("Invitation could not be sent by email");
     }
 
     await this.audit.log(
@@ -629,25 +635,27 @@ export class UsersService {
     );
 
     return {
-      message: 'Invitation sent successfully',
+      message: "Invitation sent successfully",
     };
   }
 
-  async acceptInvitation(dto: AcceptInvitationDto): Promise<{ message: string }> {
+  async acceptInvitation(
+    dto: AcceptInvitationDto,
+  ): Promise<{ message: string }> {
     const invitation = await this.prisma.userInvitation.findUnique({
       where: { token: dto.token },
     });
 
     if (!invitation) {
-      throw new BadRequestException('Invalid invitation token');
+      throw new BadRequestException("Invalid invitation token");
     }
 
     if (invitation.acceptedAt) {
-      throw new BadRequestException('Invitation already accepted');
+      throw new BadRequestException("Invitation already accepted");
     }
 
     if (invitation.expiresAt < new Date()) {
-      throw new BadRequestException('Invitation expired');
+      throw new BadRequestException("Invitation expired");
     }
 
     const existingUser = await this.prisma.user.findUnique({
@@ -655,7 +663,7 @@ export class UsersService {
     });
 
     if (existingUser) {
-      throw new BadRequestException('User with this email already exists');
+      throw new BadRequestException("User with this email already exists");
     }
 
     const passwordHash = await bcrypt.hash(dto.password, 12);
@@ -715,8 +723,7 @@ export class UsersService {
     });
 
     return {
-      message: 'Invitation accepted successfully',
+      message: "Invitation accepted successfully",
     };
   }
-
 }

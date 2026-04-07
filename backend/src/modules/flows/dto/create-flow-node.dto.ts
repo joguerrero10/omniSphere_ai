@@ -1,5 +1,13 @@
-import { FlowNodeType } from '@prisma/client';
-import { IsBoolean, IsEnum, IsNotEmpty, IsNumber, IsObject, IsOptional, IsString } from 'class-validator';
+import { FlowNodeType } from "@prisma/client";
+import {
+  IsBoolean,
+  IsEnum,
+  IsNotEmpty,
+  IsNumber,
+  IsObject,
+  IsOptional,
+  IsString,
+} from "class-validator";
 
 export class CreateFlowNodeDto {
   @IsEnum(FlowNodeType)

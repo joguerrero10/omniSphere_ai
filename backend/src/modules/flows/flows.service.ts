@@ -2,28 +2,25 @@ import {
   BadRequestException,
   Injectable,
   NotFoundException,
-} from '@nestjs/common';
-import {
-  FlowStatus,
-  Prisma,
-} from '@prisma/client';
-import { AuditService } from '../../common/audit/audit.service';
-import { CurrentUserPayload } from '../../common/interfaces/current-user.interface';
-import { PrismaService } from '../../database/prisma.service';
-import { CreateFlowEdgeDto } from './dto/create-flow-edge.dto';
-import { CreateFlowNodeDto } from './dto/create-flow-node.dto';
-import { CreateFlowTriggerDto } from './dto/create-flow-trigger.dto';
-import { CreateFlowVariableDto } from './dto/create-flow-variable.dto';
-import { CreateFlowDto } from './dto/create-flow.dto';
-import { UpdateFlowNodeDto } from './dto/update-flow-node.dto';
-import { UpdateFlowDto } from './dto/update-flow.dto';
+} from "@nestjs/common";
+import { FlowStatus, Prisma } from "@prisma/client";
+import { AuditService } from "../../common/audit/audit.service";
+import { CurrentUserPayload } from "../../common/interfaces/current-user.interface";
+import { PrismaService } from "../../database/prisma.service";
+import { CreateFlowEdgeDto } from "./dto/create-flow-edge.dto";
+import { CreateFlowNodeDto } from "./dto/create-flow-node.dto";
+import { CreateFlowTriggerDto } from "./dto/create-flow-trigger.dto";
+import { CreateFlowVariableDto } from "./dto/create-flow-variable.dto";
+import { CreateFlowDto } from "./dto/create-flow.dto";
+import { UpdateFlowNodeDto } from "./dto/update-flow-node.dto";
+import { UpdateFlowDto } from "./dto/update-flow.dto";
 
 @Injectable()
 export class FlowsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
-  ) { }
+  ) {}
 
   async create(actor: CurrentUserPayload, dto: CreateFlowDto) {
     const flow = await this.prisma.flow.create({
@@ -55,7 +52,7 @@ export class FlowsService {
         tenantId: actor.tenantId,
       },
       orderBy: {
-        createdAt: 'desc',
+        createdAt: "desc",
       },
     });
   }
@@ -75,7 +72,7 @@ export class FlowsService {
     });
 
     if (!flow) {
-      throw new NotFoundException('Flow not found');
+      throw new NotFoundException("Flow not found");
     }
 
     return flow;
@@ -88,7 +85,9 @@ export class FlowsService {
       where: { id: flowId },
       data: {
         ...(dto.name !== undefined ? { name: dto.name } : {}),
-        ...(dto.description !== undefined ? { description: dto.description } : {}),
+        ...(dto.description !== undefined
+          ? { description: dto.description }
+          : {}),
         ...(dto.status !== undefined ? { status: dto.status } : {}),
         ...(dto.metadata !== undefined
           ? { metadata: dto.metadata as Prisma.InputJsonValue }
@@ -120,10 +119,14 @@ export class FlowsService {
       { flowId: flow.id },
     );
 
-    return { message: 'Flow deleted successfully' };
+    return { message: "Flow deleted successfully" };
   }
 
-  async addNode(flowId: string, actor: CurrentUserPayload, dto: CreateFlowNodeDto) {
+  async addNode(
+    flowId: string,
+    actor: CurrentUserPayload,
+    dto: CreateFlowNodeDto,
+  ) {
     await this.ensureFlow(flowId, actor.tenantId);
 
     const existingNode = await this.prisma.flowNode.findFirst({
@@ -134,7 +137,7 @@ export class FlowsService {
     });
 
     if (existingNode) {
-      throw new BadRequestException('Node key already exists in this flow');
+      throw new BadRequestException("Node key already exists in this flow");
     }
 
     if (dto.isEntry) {
@@ -201,17 +204,21 @@ export class FlowsService {
       where: { id: nodeId },
     });
 
-    return { message: 'Node deleted successfully' };
+    return { message: "Node deleted successfully" };
   }
 
-  async addEdge(flowId: string, actor: CurrentUserPayload, dto: CreateFlowEdgeDto) {
+  async addEdge(
+    flowId: string,
+    actor: CurrentUserPayload,
+    dto: CreateFlowEdgeDto,
+  ) {
     await this.ensureFlow(flowId, actor.tenantId);
 
     const sourceNode = await this.ensureNode(flowId, dto.sourceNodeId);
     const targetNode = await this.ensureNode(flowId, dto.targetNodeId);
 
     if (!sourceNode || !targetNode) {
-      throw new BadRequestException('Invalid nodes');
+      throw new BadRequestException("Invalid nodes");
     }
 
     return this.prisma.flowEdge.create({
@@ -239,17 +246,21 @@ export class FlowsService {
     });
 
     if (!edge) {
-      throw new NotFoundException('Edge not found');
+      throw new NotFoundException("Edge not found");
     }
 
     await this.prisma.flowEdge.delete({
       where: { id: edgeId },
     });
 
-    return { message: 'Edge deleted successfully' };
+    return { message: "Edge deleted successfully" };
   }
 
-  async addVariable(flowId: string, actor: CurrentUserPayload, dto: CreateFlowVariableDto) {
+  async addVariable(
+    flowId: string,
+    actor: CurrentUserPayload,
+    dto: CreateFlowVariableDto,
+  ) {
     await this.ensureFlow(flowId, actor.tenantId);
 
     return this.prisma.flowVariable.create({
@@ -267,7 +278,11 @@ export class FlowsService {
     });
   }
 
-  async addTrigger(flowId: string, actor: CurrentUserPayload, dto: CreateFlowTriggerDto) {
+  async addTrigger(
+    flowId: string,
+    actor: CurrentUserPayload,
+    dto: CreateFlowTriggerDto,
+  ) {
     await this.ensureFlow(flowId, actor.tenantId);
 
     return this.prisma.flowTrigger.create({
@@ -294,7 +309,9 @@ export class FlowsService {
     });
 
     if (!entryNode) {
-      throw new BadRequestException('Flow must have one entry node before publish');
+      throw new BadRequestException(
+        "Flow must have one entry node before publish",
+      );
     }
 
     const updated = await this.prisma.flow.update({
@@ -326,7 +343,7 @@ export class FlowsService {
     });
 
     if (!flow) {
-      throw new NotFoundException('Flow not found');
+      throw new NotFoundException("Flow not found");
     }
 
     return flow;
@@ -341,7 +358,7 @@ export class FlowsService {
     });
 
     if (!node) {
-      throw new NotFoundException('Node not found');
+      throw new NotFoundException("Node not found");
     }
 
     return node;

@@ -5,8 +5,8 @@ import {
   IsString,
   MaxLength,
   MinLength,
-} from 'class-validator';
-import { RoleName } from '../../../common/constant/roles.constants';
+} from "class-validator";
+import { RoleName } from "../../../common/constant/roles.constants";
 
 export class CreateUserDto {
   @IsEmail()

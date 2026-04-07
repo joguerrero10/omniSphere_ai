@@ -6,24 +6,24 @@ import {
   Patch,
   Post,
   UseGuards,
-} from '@nestjs/common';
-import { ROLES } from '../../common/constant/roles.constants';
-import { AllowSystemAdminBypass } from '../../common/decorators/allow-system-admin-bypass.decorator';
-import { CurrentUser } from '../../common/decorators/current-user.decorator';
-import { Roles } from '../../common/decorators/roles.decorator';
-import { TenantResource } from '../../common/decorators/tenant-resource.decorator';
-import { JwtAuthGuard } from '../../common/guards/jwt.guard';
-import { RolesGuard } from '../../common/guards/roles.guard';
-import { TenantResourceGuard } from '../../common/guards/tenant-resource.guard';
-import { CurrentUserPayload } from '../../common/interfaces/current-user.interface';
-import { CreateTenantDto } from './dto/create-tenant.dto';
-import { UpdateTenantDto } from './dto/update-tenant.dto';
-import { TenantsService } from './tenant.service';
+} from "@nestjs/common";
+import { ROLES } from "../../common/constant/roles.constants";
+import { AllowSystemAdminBypass } from "../../common/decorators/allow-system-admin-bypass.decorator";
+import { CurrentUser } from "../../common/decorators/current-user.decorator";
+import { Roles } from "../../common/decorators/roles.decorator";
+import { TenantResource } from "../../common/decorators/tenant-resource.decorator";
+import { JwtAuthGuard } from "../../common/guards/jwt.guard";
+import { RolesGuard } from "../../common/guards/roles.guard";
+import { TenantResourceGuard } from "../../common/guards/tenant-resource.guard";
+import { CurrentUserPayload } from "../../common/interfaces/current-user.interface";
+import { CreateTenantDto } from "./dto/create-tenant.dto";
+import { UpdateTenantDto } from "./dto/update-tenant.dto";
+import { TenantsService } from "./tenant.service";
 
-@Controller('tenants')
+@Controller("tenants")
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class TenantsController {
-  constructor(private readonly tenantsService: TenantsService) { }
+  constructor(private readonly tenantsService: TenantsService) {}
 
   @Post()
   @Roles(ROLES.ADMIN_SISTEMA)
@@ -40,28 +40,28 @@ export class TenantsController {
     return this.tenantsService.findAll();
   }
 
-  @Get('me')
+  @Get("me")
   @Roles(ROLES.ADMIN_TENANT, ROLES.USER, ROLES.ADMIN_SISTEMA)
   findMyTenant(@CurrentUser() user: CurrentUserPayload) {
     return this.tenantsService.findByTenantId(user.tenantId);
   }
 
-  @Get(':id')
+  @Get(":id")
   @UseGuards(TenantResourceGuard)
   @TenantResource({
-    model: 'tenant',
-    paramName: 'id',
-    tenantField: 'id',
-    idField: 'id',
-    notFoundMessage: 'Tenant not found',
+    model: "tenant",
+    paramName: "id",
+    tenantField: "id",
+    idField: "id",
+    notFoundMessage: "Tenant not found",
   })
   @AllowSystemAdminBypass()
   @Roles(ROLES.ADMIN_TENANT, ROLES.USER, ROLES.ADMIN_SISTEMA)
-  findOne(@Param('id') id: string) {
+  findOne(@Param("id") id: string) {
     return this.tenantsService.findByTenantId(id);
   }
 
-  @Patch('me')
+  @Patch("me")
   @Roles(ROLES.ADMIN_TENANT, ROLES.ADMIN_SISTEMA)
   updateMyTenant(
     @Body() dto: UpdateTenantDto,
@@ -70,19 +70,19 @@ export class TenantsController {
     return this.tenantsService.update(user.tenantId, dto, user.userId);
   }
 
-  @Patch(':id')
+  @Patch(":id")
   @UseGuards(TenantResourceGuard)
   @TenantResource({
-    model: 'tenant',
-    paramName: 'id',
-    tenantField: 'id',
-    idField: 'id',
-    notFoundMessage: 'Tenant not found',
+    model: "tenant",
+    paramName: "id",
+    tenantField: "id",
+    idField: "id",
+    notFoundMessage: "Tenant not found",
   })
   @AllowSystemAdminBypass()
   @Roles(ROLES.ADMIN_TENANT, ROLES.ADMIN_SISTEMA)
   updateById(
-    @Param('id') id: string,
+    @Param("id") id: string,
     @Body() dto: UpdateTenantDto,
     @CurrentUser() user: CurrentUserPayload,
   ) {

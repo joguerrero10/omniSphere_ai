@@ -1,6 +1,6 @@
-import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
-import * as Joi from 'joi';
+import { Module } from "@nestjs/common";
+import { ConfigModule } from "@nestjs/config";
+import * as Joi from "joi";
 
 @Module({
   imports: [
@@ -15,4 +15,4 @@ import * as Joi from 'joi';
     }),
   ],
 })
-export class AppConfigModule { }
+export class AppConfigModule {}

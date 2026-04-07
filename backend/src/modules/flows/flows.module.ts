@@ -1,7 +1,7 @@
-import { Module } from '@nestjs/common';
-import { CommonModule } from '../../common/common.module';
-import { FlowsController } from './flows.controller';
-import { FlowsService } from './flows.service';
+import { Module } from "@nestjs/common";
+import { CommonModule } from "../../common/common.module";
+import { FlowsController } from "./flows.controller";
+import { FlowsService } from "./flows.service";
 
 @Module({
   imports: [CommonModule],
@@ -9,4 +9,4 @@ import { FlowsService } from './flows.service';
   providers: [FlowsService],
   exports: [FlowsService],
 })
-export class FlowsModule { }
+export class FlowsModule {}
