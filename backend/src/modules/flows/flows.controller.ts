@@ -6,8 +6,10 @@ import {
   Param,
   Patch,
   Post,
+  UseGuards,
 } from "@nestjs/common";
 import { CurrentUser } from "../../common/decorators/current-user.decorator";
+import { JwtAuthGuard } from "../../common/guards/jwt.guard";
 import { CurrentUserPayload } from "../../common/interfaces/current-user.interface";
 import { CreateFlowEdgeDto } from "./dto/create-flow-edge.dto";
 import { CreateFlowNodeDto } from "./dto/create-flow-node.dto";
@@ -18,9 +20,10 @@ import { UpdateFlowNodeDto } from "./dto/update-flow-node.dto";
 import { UpdateFlowDto } from "./dto/update-flow.dto";
 import { FlowsService } from "./flows.service";
 
+@UseGuards(JwtAuthGuard)
 @Controller("flows")
 export class FlowsController {
-  constructor(private readonly flowsService: FlowsService) {}
+  constructor(private readonly flowsService: FlowsService) { }
 
   @Post()
   create(@CurrentUser() actor: CurrentUserPayload, @Body() dto: CreateFlowDto) {

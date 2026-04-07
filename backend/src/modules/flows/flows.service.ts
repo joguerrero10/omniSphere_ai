@@ -20,7 +20,7 @@ export class FlowsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
-  ) {}
+  ) { }
 
   async create(actor: CurrentUserPayload, dto: CreateFlowDto) {
     const flow = await this.prisma.flow.create({
@@ -214,23 +214,20 @@ export class FlowsService {
   ) {
     await this.ensureFlow(flowId, actor.tenantId);
 
-    const sourceNode = await this.ensureNode(flowId, dto.sourceNodeId);
-    const targetNode = await this.ensureNode(flowId, dto.targetNodeId);
-
-    if (!sourceNode || !targetNode) {
-      throw new BadRequestException("Invalid nodes");
-    }
+    await this.ensureNode(flowId, dto.sourceNodeId);
+    await this.ensureNode(flowId, dto.targetNodeId);
 
     return this.prisma.flowEdge.create({
       data: {
         flowId,
         sourceNodeId: dto.sourceNodeId,
         targetNodeId: dto.targetNodeId,
-        label: dto.label,
-        conditionKey: dto.conditionKey,
-        ...(dto.metadata !== undefined
-          ? { metadata: dto.metadata as Prisma.InputJsonValue }
+        ...(dto.label !== undefined ? { label: dto.label } : {}),
+        ...(dto.conditionType !== undefined
+          ? { conditionType: dto.conditionType }
           : {}),
+        ...(dto.intentName !== undefined ? { intentName: dto.intentName } : {}),
+        ...(dto.isFallback !== undefined ? { isFallback: dto.isFallback } : {}),
       },
     });
   }

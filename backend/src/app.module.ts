@@ -5,11 +5,10 @@ import { ThrottlerModule } from "@nestjs/throttler";
 import { CustomThrottlerGuard } from "./common/guards/custom-throttler.guard";
 import { AppConfigModule } from "./config/config.module";
 import { AuthModule } from "./modules/auth/auth.module";
+import { FlowExecutionsModule } from './modules/flow-executions/flow-executions.module';
+import { FlowsModule } from "./modules/flows/flows.module";
 import { TenantsModule } from "./modules/tenants/tenant.module";
 import { UsersModule } from "./modules/users/users.module";
-import { FlowsModule } from "./module/flows/flows.module";
-import { FlowsModule } from "./modules/flows/flows.module";
-import { FlowExecutionsModule } from './modules/flow-executions/flow-executions.module';
 
 @Module({
   imports: [
@@ -37,4 +36,4 @@ import { FlowExecutionsModule } from './modules/flow-executions/flow-executions.
     },
   ],
 })
-export class AppModule {}
+export class AppModule { }

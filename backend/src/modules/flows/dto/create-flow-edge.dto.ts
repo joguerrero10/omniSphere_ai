@@ -1,12 +1,17 @@
-import { IsNotEmpty, IsObject, IsOptional, IsString } from "class-validator";
+import { FlowEdgeConditionType } from '@prisma/client';
+import {
+  IsBoolean,
+  IsEnum,
+  IsOptional,
+  IsString,
+  IsUUID,
+} from 'class-validator';
 
 export class CreateFlowEdgeDto {
-  @IsString()
-  @IsNotEmpty()
+  @IsUUID()
   sourceNodeId: string;
 
-  @IsString()
-  @IsNotEmpty()
+  @IsUUID()
   targetNodeId: string;
 
   @IsOptional()
@@ -14,10 +19,14 @@ export class CreateFlowEdgeDto {
   label?: string;
 
   @IsOptional()
-  @IsString()
-  conditionKey?: string;
+  @IsEnum(FlowEdgeConditionType)
+  conditionType?: FlowEdgeConditionType;
 
   @IsOptional()
-  @IsObject()
-  metadata?: Record<string, unknown>;
+  @IsString()
+  intentName?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  isFallback?: boolean;
 }
