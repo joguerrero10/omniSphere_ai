@@ -14,16 +14,17 @@ enum TenantPlan {
 }
 
 model Tenant {
-  id         String    @id @default(uuid())
-  name       String
-  plan       TenantPlan
-  metadata   Json?
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
-  createdBy  String
-  users      User[]
-  roles      Role[]
-  auditLogs  AuditLog[]
+  id          String           @id @default(uuid())
+  name        String
+  plan        TenantPlan
+  metadata    Json?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  createdBy   String
+  users       User[]
+  roles       Role[]
+  auditLogs   AuditLog[]
+  invitations UserInvitation[]
 }
 
 model AuditLog {
@@ -31,6 +32,7 @@ model AuditLog {
   action    String
   tenantId  String
   userId    String?
+  metadata  Json?
   createdAt DateTime @default(now())
 
   tenant Tenant @relation(fields: [tenantId], references: [id])
@@ -38,26 +40,27 @@ model AuditLog {
 }
 
 model User {
-  id           String      @id @default(cuid())
-  email        String      @unique
+  id           String    @id @default(cuid())
+  email        String    @unique
+  name         String?
   passwordHash String
   tenantId     String
-  isActive     Boolean     @default(true)
+  isActive     Boolean   @default(true)
   lastLoginAt  DateTime?
-  createdAt    DateTime    @default(now())
-  updatedAt    DateTime    @updatedAt
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 
-  tenant       Tenant      @relation(fields: [tenantId], references: [id])
-  roles        UserRole[]
-  auditLogs    AuditLog[]
+  tenant    Tenant     @relation(fields: [tenantId], references: [id])
+  roles     UserRole[]
+  auditLogs AuditLog[]
 }
 
 model Role {
-  id        String   @id @default(uuid())
-  name      String
-  tenantId  String
-  tenant    Tenant   @relation(fields: [tenantId], references: [id])
-  users     UserRole[]
+  id       String     @id @default(uuid())
+  name     String
+  tenantId String
+  tenant   Tenant     @relation(fields: [tenantId], references: [id])
+  users    UserRole[]
 
   @@unique([tenantId, name])
 }
@@ -81,4 +84,20 @@ model Flow {
 model Webhook {
   id       String @id @default(cuid())
   tenantId String
+}
+
+model UserInvitation {
+  id         String    @id @default(uuid())
+  email      String
+  tenantId   String
+  token      String    @unique
+  roles      Json?
+  expiresAt  DateTime
+  acceptedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([email])
 }

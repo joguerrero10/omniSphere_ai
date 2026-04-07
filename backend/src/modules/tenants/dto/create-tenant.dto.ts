@@ -8,7 +8,7 @@ export class CreateTenantDto {
 
   @IsString()
   @IsEnum(TenantPlan)
-  plan: string;
+  plan: TenantPlan;
 
   @IsOptional()
   @IsObject()
