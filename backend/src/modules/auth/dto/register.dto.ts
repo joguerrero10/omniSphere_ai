@@ -18,4 +18,9 @@ export class RegisterDto {
   @IsNotEmpty()
   @MaxLength(120)
   tenantName: string;
+
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(60)
+  name: string;
 }
