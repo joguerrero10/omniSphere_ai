@@ -1,13 +1,13 @@
-import { Injectable } from '@nestjs/common';
-import { Reflector } from '@nestjs/core';
+import { Injectable } from "@nestjs/common";
+import { Reflector } from "@nestjs/core";
 import {
   InjectThrottlerOptions,
   InjectThrottlerStorage,
   ThrottlerGuard,
   ThrottlerModuleOptions,
   ThrottlerStorage,
-} from '@nestjs/throttler';
-import { Request } from 'express';
+} from "@nestjs/throttler";
+import { Request } from "express";
 
 @Injectable()
 export class CustomThrottlerGuard extends ThrottlerGuard {
@@ -24,19 +24,19 @@ export class CustomThrottlerGuard extends ThrottlerGuard {
   protected async getTracker(req: Request): Promise<string> {
     const user = req.user as
       | {
-        userId?: string;
-        tenantId?: string;
-      }
+          userId?: string;
+          tenantId?: string;
+        }
       | undefined;
 
     if (user?.userId && user?.tenantId) {
       return `user:${user.userId}:tenant:${user.tenantId}`;
     }
 
-    const forwardedFor = req.headers['x-forwarded-for'];
+    const forwardedFor = req.headers["x-forwarded-for"];
     const ip =
-      typeof forwardedFor === 'string'
-        ? forwardedFor.split(',')[0].trim()
+      typeof forwardedFor === "string"
+        ? forwardedFor.split(",")[0].trim()
         : req.ip;
 
     return `ip:${ip}`;

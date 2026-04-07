@@ -2,20 +2,20 @@ import {
   BadRequestException,
   Injectable,
   UnauthorizedException,
-} from '@nestjs/common';
-import { JwtService } from '@nestjs/jwt';
-import * as bcrypt from 'bcrypt';
-import { ROLES } from '../../common/constant/roles.constants';
-import { PrismaService } from '../../database/prisma.service';
-import { LoginDto } from './dto/login.dto';
-import { RegisterDto } from './dto/register.dto';
+} from "@nestjs/common";
+import { JwtService } from "@nestjs/jwt";
+import * as bcrypt from "bcrypt";
+import { ROLES } from "../../common/constant/roles.constants";
+import { PrismaService } from "../../database/prisma.service";
+import { LoginDto } from "./dto/login.dto";
+import { RegisterDto } from "./dto/register.dto";
 
 @Injectable()
 export class AuthService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
-  ) { }
+  ) {}
 
   async register(dto: RegisterDto) {
     const existingUser = await this.prisma.user.findUnique({
@@ -23,7 +23,7 @@ export class AuthService {
     });
 
     if (existingUser) {
-      throw new BadRequestException('User with this email already exists');
+      throw new BadRequestException("User with this email already exists");
     }
 
     const passwordHash = await bcrypt.hash(dto.password, 12);
@@ -32,7 +32,7 @@ export class AuthService {
       const tenant = await tx.tenant.create({
         data: {
           name: dto.tenantName,
-          plan: 'FREE',
+          plan: "FREE",
           createdBy: dto.email,
         },
       });
@@ -64,7 +64,7 @@ export class AuthService {
     });
 
     return {
-      message: 'User registered successfully',
+      message: "User registered successfully",
       user: {
         id: result.user.id,
         email: result.user.email,
@@ -87,17 +87,20 @@ export class AuthService {
     });
 
     if (!user) {
-      throw new UnauthorizedException('Invalid credentials');
+      throw new UnauthorizedException("Invalid credentials");
     }
 
-    const isPasswordValid = await bcrypt.compare(dto.password, user.passwordHash);
+    const isPasswordValid = await bcrypt.compare(
+      dto.password,
+      user.passwordHash,
+    );
 
     if (!isPasswordValid) {
-      throw new UnauthorizedException('Invalid credentials');
+      throw new UnauthorizedException("Invalid credentials");
     }
 
     if (!user.isActive) {
-      throw new UnauthorizedException('User is inactive');
+      throw new UnauthorizedException("User is inactive");
     }
 
     const roles = user.roles.map((userRole) => userRole.role.name);
@@ -120,6 +123,7 @@ export class AuthService {
       user: {
         id: user.id,
         email: user.email,
+        name: user.name,
         tenantId: user.tenantId,
         roles,
       },

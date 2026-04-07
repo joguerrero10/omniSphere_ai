@@ -1,5 +1,11 @@
-import { IsEnum, IsObject, IsOptional, IsString, MaxLength } from 'class-validator';
-import { TenantPlan } from '../enum/tenant-plan';
+import {
+  IsEnum,
+  IsObject,
+  IsOptional,
+  IsString,
+  MaxLength,
+} from "class-validator";
+import { TenantPlan } from "../enum/tenant-plan";
 
 export class CreateTenantDto {
   @IsString()
@@ -8,7 +14,7 @@ export class CreateTenantDto {
 
   @IsString()
   @IsEnum(TenantPlan)
-  plan: string;
+  plan: TenantPlan;
 
   @IsOptional()
   @IsObject()

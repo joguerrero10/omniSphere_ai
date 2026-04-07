@@ -1,10 +1,11 @@
-import { Module } from '@nestjs/common';
-import { PrismaService } from '../database/prisma.service';
-import { RolesGuard } from './guards/roles.guard';
-import { TenantResourceGuard } from './guards/tenant-resource.guard';
+import { Module } from "@nestjs/common";
+import { PrismaService } from "../database/prisma.service";
+import { AuditService } from "./audit/audit.service";
+import { RolesGuard } from "./guards/roles.guard";
+import { TenantResourceGuard } from "./guards/tenant-resource.guard";
 
 @Module({
-  providers: [PrismaService, RolesGuard, TenantResourceGuard],
-  exports: [PrismaService, RolesGuard, TenantResourceGuard],
+  providers: [PrismaService, RolesGuard, TenantResourceGuard, AuditService],
+  exports: [PrismaService, RolesGuard, TenantResourceGuard, AuditService],
 })
 export class CommonModule { }

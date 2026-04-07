@@ -4,39 +4,35 @@ import {
   ForbiddenException,
   Injectable,
   NotFoundException,
-} from '@nestjs/common';
-import { Reflector } from '@nestjs/core';
-import { PrismaService } from '../../database/prisma.service';
+} from "@nestjs/common";
+import { Reflector } from "@nestjs/core";
+import { PrismaService } from "../../database/prisma.service";
 
-import { ROLES } from '../constant/roles.constants';
-import {
-  ALLOW_SYSTEM_ADMIN_BYPASS_KEY,
-} from '../decorators/allow-system-admin-bypass.decorator';
-import {
-  TENANT_SCOPED_PARAM_KEY,
-} from '../decorators/tenant-scoped-param.decorator';
-import { CurrentUserPayload } from '../interfaces/current-user.interface';
+import { ROLES } from "../constant/roles.constants";
+import { ALLOW_SYSTEM_ADMIN_BYPASS_KEY } from "../decorators/allow-system-admin-bypass.decorator";
+import { TENANT_SCOPED_PARAM_KEY } from "../decorators/tenant-scoped-param.decorator";
+import { CurrentUserPayload } from "../interfaces/current-user.interface";
 
 @Injectable()
 export class TenantGuard implements CanActivate {
   constructor(
     private readonly reflector: Reflector,
     private readonly prisma: PrismaService,
-  ) { }
+  ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest();
     const user = request.user as CurrentUserPayload | undefined;
 
     if (!user) {
-      throw new ForbiddenException('Authenticated user not found');
+      throw new ForbiddenException("Authenticated user not found");
     }
 
     const allowSystemAdminBypass =
-      this.reflector.getAllAndOverride<boolean>(
-        ALLOW_SYSTEM_ADMIN_BYPASS_KEY,
-        [context.getHandler(), context.getClass()],
-      ) ?? false;
+      this.reflector.getAllAndOverride<boolean>(ALLOW_SYSTEM_ADMIN_BYPASS_KEY, [
+        context.getHandler(),
+        context.getClass(),
+      ]) ?? false;
 
     if (
       allowSystemAdminBypass &&
@@ -68,12 +64,12 @@ export class TenantGuard implements CanActivate {
     });
 
     if (!tenant) {
-      throw new NotFoundException('Tenant not found');
+      throw new NotFoundException("Tenant not found");
     }
 
     if (tenant.id !== user.tenantId) {
       throw new ForbiddenException(
-        'You do not have access to this tenant resource',
+        "You do not have access to this tenant resource",
       );
     }
 
