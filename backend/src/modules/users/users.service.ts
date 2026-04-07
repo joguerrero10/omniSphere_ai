@@ -10,6 +10,7 @@ import { AuditService } from '../../common/audit/audit.service';
 import { RoleName, ROLES } from '../../common/constant/roles.constants';
 import { AuditContext } from '../../common/interfaces/audit-context.interface';
 import { CurrentUserPayload } from '../../common/interfaces/current-user.interface';
+import { MailService } from '../../common/mail/mail.service';
 import { PrismaService } from '../../database/prisma.service';
 import { AcceptInvitationDto } from './dto/accept-invitation.dto';
 import { AssignRolesDto } from './dto/assign-roles.dto';
@@ -27,6 +28,7 @@ export class UsersService {
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
     private readonly usersPolicy: UsersPolicy,
+    private readonly mailService: MailService,
   ) { }
 
   private async ensureTenantAdminNotRemovingOwnLastAdminRole(
@@ -594,7 +596,7 @@ export class UsersService {
     const token = randomBytes(32).toString('hex');
     const expiresAt = new Date(Date.now() + 1000 * 60 * 60 * 24);
 
-    await this.prisma.userInvitation.create({
+    const invitation = await this.prisma.userInvitation.create({
       data: {
         email: dto.email,
         tenantId: actor.tenantId,
@@ -604,10 +606,26 @@ export class UsersService {
       },
     });
 
+    try {
+      await this.mailService.sendUserInvitationEmail(dto.email, token);
+    } catch {
+      await this.prisma.userInvitation.delete({
+        where: { id: invitation.id },
+      });
+
+      throw new BadRequestException(
+        'Invitation could not be sent by email',
+      );
+    }
+
     await this.audit.log(
       `User invitation sent to: ${dto.email}`,
       actor.tenantId,
       actor.userId,
+      {
+        invitationId: invitation.id,
+        invitedEmail: dto.email,
+      },
     );
 
     return {
