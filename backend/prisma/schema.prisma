@@ -624,3 +624,42 @@ model TenantNluSettings {
 
   tenant                 Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 }
+
+model LlmTrace {
+  id                String   @id @default(cuid())
+  correlationId     String   @db.VarChar(100)
+  userId            String?  @db.VarChar(100)
+
+  provider          String   @db.VarChar(50)
+  model             String   @db.VarChar(100)
+  taskType          String   @db.VarChar(50)
+
+  promptKey         String?  @db.VarChar(100)
+  promptVersion     Int?
+
+  requestHash       String?  @db.VarChar(128)
+  responseHash      String?  @db.VarChar(128)
+
+  requestPreview    String?  @db.Text
+  responsePreview   String?  @db.Text
+
+  latencyMs         Int
+  status            String   @db.VarChar(30)
+  cacheHit          Boolean  @default(false)
+  fallbackUsed      Boolean  @default(false)
+
+  inputTokens       Int?
+  outputTokens      Int?
+  totalTokens       Int?
+
+  errorCode         String?  @db.VarChar(100)
+  errorMessage      String?  @db.Text
+
+  createdAt         DateTime @default(now())
+
+  @@index([correlationId])
+  @@index([userId, createdAt])
+  @@index([provider, model, createdAt])
+  @@index([taskType, createdAt])
+  @@index([status, createdAt])
+}
