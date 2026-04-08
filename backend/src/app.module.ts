@@ -5,10 +5,13 @@ import { ThrottlerModule } from "@nestjs/throttler";
 import { CustomThrottlerGuard } from "./common/guards/custom-throttler.guard";
 import { AppConfigModule } from "./config/config.module";
 import { AuthModule } from "./modules/auth/auth.module";
+import { ChannelsModule } from "./modules/channels/channels.module";
 import { FlowExecutionsModule } from './modules/flow-executions/flow-executions.module';
 import { FlowsModule } from "./modules/flows/flows.module";
+import { NluModule } from "./modules/nlu/nlu.module";
 import { TenantsModule } from "./modules/tenants/tenant.module";
 import { UsersModule } from "./modules/users/users.module";
+import { WebhooksModule } from "./modules/webhooks/webhooks.module";
 
 @Module({
   imports: [
@@ -27,6 +30,9 @@ import { UsersModule } from "./modules/users/users.module";
     UsersModule,
     FlowsModule,
     FlowExecutionsModule,
+    ChannelsModule,
+    WebhooksModule,
+    NluModule,
   ],
   controllers: [],
   providers: [
