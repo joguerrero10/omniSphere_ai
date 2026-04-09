@@ -25,6 +25,7 @@ export class MailService {
 
     await this.mailerService.sendMail({
       to: email,
+      from: `"OmniSphere AI" <${this.configService.get<string>("MAIL_FROM")}>`,
       subject: "Invitación a la plataforma",
       html: `
         <div style="font-family: Arial, sans-serif; line-height: 1.5;">
