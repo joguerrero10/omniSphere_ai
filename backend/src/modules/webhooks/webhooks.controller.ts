@@ -1,8 +1,10 @@
-import { Body, Controller, Get, Param, Patch, Post, Query } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
+import { JwtAuthGuard } from '../../common/guards/jwt.guard';
 import { CreateWebhookEventDto } from './dto/create-webhook-event.dto';
 import { RespondWebhookDto } from './dto/respond-webhook.dto';
 import { WebhooksService } from './webhooks.service';
 
+@UseGuards(JwtAuthGuard)
 @Controller('webhooks')
 export class WebhooksController {
   constructor(private readonly webhooksService: WebhooksService) { }

@@ -39,7 +39,7 @@ export class AuthService {
 
       const role = await tx.role.create({
         data: {
-          name: ROLES.ADMIN_SISTEMA, //cambiar a ADMIN_TENANT si se quiere asignar el rol correcto, pero por ahora se asigna ADMIN_SISTEMA para pruebas
+          name: ROLES.ADMIN_TENANT,
           tenantId: tenant.id,
         },
       });
@@ -71,7 +71,7 @@ export class AuthService {
         name: result.user.name,
         email: result.user.email,
         tenantId: result.tenant.id,
-        roles: [ROLES.ADMIN_SISTEMA],//cambiar roles a ADMIN_TENANT si se quiere asignar el rol correcto, pero por ahora se asigna ADMIN_SISTEMA para pruebas
+        roles: [ROLES.ADMIN_TENANT],
       },
     };
   }

@@ -5,9 +5,11 @@ import {
   MessageEvent,
   Param,
   Post,
-  Sse
+  Sse,
+  UseGuards
 } from '@nestjs/common';
 import { Observable } from 'rxjs';
+import { JwtAuthGuard } from '../../common/guards/jwt.guard';
 import { CreateEntityValueDto } from './dto/create-entity-value.dto';
 import { CreateEntityDto } from './dto/create-entity.dto';
 import { CreateIntentEntityDto } from './dto/create-intent-entity.dto';
@@ -20,7 +22,7 @@ import { NluService } from './nlu.service';
 import { HybridClassifierService } from './providers/hybrid-classifier.service';
 import { LlmClientService } from './providers/llm-client.service';
 import { StreamService } from './providers/stream.service';
-
+@UseGuards(JwtAuthGuard)
 @Controller('nlu')
 export class NluController {
   constructor(private readonly nluService: NluService, private readonly llmClient: LlmClientService,

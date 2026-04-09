@@ -1,8 +1,10 @@
-import { Body, Controller, Get, Param, Post } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
+import { JwtAuthGuard } from '../../common/guards/jwt.guard';
 import { ContinueFlowExecutionDto } from './dto/continue-flow-execution.dto';
 import { ExecuteFlowDto } from './dto/execute-flow.dto';
 import { FlowExecutionsService } from './flow-executions.service';
 
+@UseGuards(JwtAuthGuard)
 @Controller('flow-executions')
 export class FlowExecutionsController {
   constructor(private readonly flowExecutionsService: FlowExecutionsService) { }
