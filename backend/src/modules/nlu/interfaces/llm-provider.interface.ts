@@ -1,7 +1,13 @@
+export type ExternalLlmProvider = 'groq' | 'openai' | 'anthropic' | 'local';
+
 export interface CompleteProviderRequest {
   prompt: string;
   model: string;
-  fallbackModel?: string;
+  systemPrompt?: string | null;
+  temperature?: number;
+  maxTokens?: number;
+  stream?: boolean;
+  metadata?: Record<string, unknown>;
 }
 
 export interface ProviderUsage {
@@ -13,10 +19,12 @@ export interface ProviderUsage {
 export interface ProviderResult {
   text: string;
   model: string;
-  provider: string;
+  provider: ExternalLlmProvider;
   usage?: ProviderUsage;
+  raw?: unknown;
 }
 
-export interface LlmProvider {
+export interface ExternalLlmAdapter {
+  readonly providerName: ExternalLlmProvider;
   complete(req: CompleteProviderRequest): Promise<ProviderResult>;
 }

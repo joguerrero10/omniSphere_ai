@@ -1,21 +1,26 @@
 import { Inject, Injectable } from '@nestjs/common';
 import * as crypto from 'crypto';
 import Redis from 'ioredis';
-
-export interface CachedLlmResponse {
-  text: string;
-  model: string;
-  usage?: Record<string, any>;
-  createdAt: string;
-}
+import { LlmRequest } from '../interfaces/llm-request.interface';
+import { LlmResponse } from '../interfaces/llm-response.interface';
 
 @Injectable()
 export class LlmCacheService {
-  constructor(
-    @Inject('REDIS_CLIENT') private readonly redis: Redis,
-  ) { }
+  constructor(@Inject('REDIS_CLIENT') private readonly redis: Redis) { }
 
-  private buildKey(payload: Record<string, any>): string {
+  buildPayload(req: LlmRequest, provider: string, model: string) {
+    return {
+      provider,
+      model,
+      taskType: req.taskType,
+      prompt: req.prompt,
+      temperature: req.temperature ?? 0,
+      maxTokens: req.maxTokens ?? 512,
+      metadata: req.metadata ?? {},
+    };
+  }
+
+  buildKey(payload: Record<string, unknown>): string {
     const hash = crypto
       .createHash('sha256')
       .update(JSON.stringify(payload))
@@ -24,18 +29,16 @@ export class LlmCacheService {
     return `llm:cache:${hash}`;
   }
 
-  async get(payload: Record<string, any>): Promise<CachedLlmResponse | null> {
-    const key = this.buildKey(payload);
-    const raw = await this.redis.get(key);
-    return raw ? JSON.parse(raw) : null;
+  async get(payload: Record<string, unknown>): Promise<LlmResponse | null> {
+    const raw = await this.redis.get(this.buildKey(payload));
+    return raw ? (JSON.parse(raw) as LlmResponse) : null;
   }
 
   async set(
-    payload: Record<string, any>,
-    value: CachedLlmResponse,
+    payload: Record<string, unknown>,
+    value: LlmResponse,
     ttlSeconds = 300,
   ): Promise<void> {
-    const key = this.buildKey(payload);
-    await this.redis.set(key, JSON.stringify(value), 'EX', ttlSeconds);
+    await this.redis.set(this.buildKey(payload), JSON.stringify(value), 'EX', ttlSeconds);
   }
 }
