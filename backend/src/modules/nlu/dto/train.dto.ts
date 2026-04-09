@@ -1,14 +1,16 @@
-import { IsOptional, IsString } from 'class-validator';
+import { IsEnum, IsOptional, IsString } from "class-validator";
+
+export enum NluTrainTrigger {
+  MANUAL = "manual",
+  AUTO = "auto",
+}
 
 export class TrainDto {
-  @IsString()
-  tenantId: string;
-
   @IsOptional()
   @IsString()
-  createdBy?: string = 'system';
+  createdBy?: string = "system";
 
   @IsOptional()
-  @IsString()
-  triggerType?: string = 'manual';
+  @IsEnum(NluTrainTrigger)
+  triggerType?: NluTrainTrigger = NluTrainTrigger.MANUAL;
 }

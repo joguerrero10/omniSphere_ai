@@ -8,32 +8,29 @@ import {
 
 export class ExecuteFlowDto {
   @IsUUID()
-  tenantId: string;
-
-  @IsUUID()
   flowId: string;
 
   @IsOptional()
   @IsString()
-  channel?: string; // whatsapp, webchat, instagram, etc.
+  channel?: string;
 
   @IsOptional()
   @IsString()
-  userId?: string; // usuario final o externalUserId
+  userId?: string;
 
   @IsOptional()
   @IsString()
-  sessionId?: string; // conversación/sesión externa
+  sessionId?: string;
 
   @IsOptional()
   @IsString()
-  inputText?: string; // mensaje entrante del usuario
+  inputText?: string;
 
   @IsOptional()
   @IsObject()
-  payload?: Record<string, any>; // input estructurado
+  payload?: Record<string, unknown>;
 
   @IsOptional()
   @IsArray()
-  triggeredByNodeIds?: string[]; // opcional para debug o reanudación
+  triggeredByNodeIds?: string[];
 }

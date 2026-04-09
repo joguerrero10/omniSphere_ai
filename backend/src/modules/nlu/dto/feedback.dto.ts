@@ -1,9 +1,6 @@
-import { IsBoolean, IsOptional, IsString } from 'class-validator';
+import { IsBoolean, IsOptional, IsString } from "class-validator";
 
 export class FeedbackDto {
-  @IsString()
-  tenantId: string;
-
   @IsString()
   inferenceLogId: string;
 

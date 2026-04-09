@@ -1,22 +1,22 @@
-import { IsEnum, IsOptional, IsString } from 'class-validator';
-
-export enum EntityTypeDto {
-  REGEX = 'REGEX',
-  DICTIONARY = 'DICTIONARY',
-  SYSTEM = 'SYSTEM',
-}
+import { NluEntityType } from "@prisma/client";
+import { IsEnum, IsNotEmpty, IsOptional, IsString, MaxLength } from "class-validator";
 
 export class CreateEntityDto {
   @IsString()
+  @IsNotEmpty()
+  @MaxLength(100)
   code: string;
 
   @IsString()
+  @IsNotEmpty()
+  @MaxLength(150)
   name: string;
 
-  @IsEnum(EntityTypeDto)
-  entityType: EntityTypeDto;
+  @IsEnum(NluEntityType)
+  entityType: NluEntityType;
 
   @IsOptional()
   @IsString()
+  @MaxLength(500)
   validationRule?: string;
 }

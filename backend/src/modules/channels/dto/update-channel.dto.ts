@@ -1,10 +1,10 @@
-import { PartialType } from '@nestjs/mapped-types';
-import { IsEnum, IsObject, IsOptional, IsString, IsUUID } from 'class-validator';
-import { ChannelType, CreateChannelDto } from './create-channel.dto';
+import { PartialType } from "@nestjs/mapped-types";
+import { IsEnum, IsObject, IsOptional, IsString, IsUUID } from "class-validator";
+import { ChannelType, CreateChannelDto } from "./create-channel.dto";
 
 export enum ChannelStatus {
-  ACTIVE = 'ACTIVE',
-  INACTIVE = 'INACTIVE',
+  ACTIVE = "ACTIVE",
+  INACTIVE = "INACTIVE",
 }
 
 export class UpdateChannelDto extends PartialType(CreateChannelDto) {
@@ -26,7 +26,7 @@ export class UpdateChannelDto extends PartialType(CreateChannelDto) {
 
   @IsOptional()
   @IsObject()
-  configJson?: Record<string, any>;
+  configJson?: Record<string, unknown>;
 
   @IsOptional()
   @IsString()

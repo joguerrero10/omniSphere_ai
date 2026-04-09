@@ -2,27 +2,40 @@ import {
   BadRequestException,
   Injectable,
   NotFoundException,
-} from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import {
-  NluEntityType,
-  NluModelStatus,
-} from '@prisma/client';
-import { PrismaService } from '../../database/prisma.service';
-import { CreateEntityValueDto } from './dto/create-entity-value.dto';
-import { CreateEntityDto } from './dto/create-entity.dto';
-import { CreateIntentEntityDto } from './dto/create-intent-entity.dto';
-import { CreateIntentDto } from './dto/create-intent.dto';
-import { CreateUtteranceDto } from './dto/create-utterance.dto';
-import { FeedbackDto } from './dto/feedback.dto';
-import { InferDto } from './dto/infer.dto';
-import { TrainDto } from './dto/train.dto';
-import { InferenceResult } from './interfaces/inference-result.interface';
-import { LlmProvider } from './providers/llm.provider';
+} from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
+import { NluEntityType, NluModelStatus } from "@prisma/client";
+import { PrismaService } from "../../database/prisma.service";
+import { CreateEntityValueDto } from "./dto/create-entity-value.dto";
+import { CreateEntityDto } from "./dto/create-entity.dto";
+import { CreateIntentEntityDto } from "./dto/create-intent-entity.dto";
+import { CreateIntentDto } from "./dto/create-intent.dto";
+import { CreateUtteranceDto } from "./dto/create-utterance.dto";
+import { FeedbackDto } from "./dto/feedback.dto";
+import { InferDto } from "./dto/infer.dto";
+import { NluTrainTrigger, TrainDto } from "./dto/train.dto";
+import { InferenceResult } from "./interfaces/inference-result.interface";
+import { LlmProvider } from "./providers/llm.provider";
+
+type ExtractedEntities = Record<string, string>;
+
+type ClassifierItem = {
+  intentCode: string;
+  intentName: string;
+  examples: string[];
+  vocabulary: string[];
+};
+
+type TenantModelRegistry = {
+  version: string;
+  trainedAt: string;
+  classifier: ClassifierItem[];
+  metrics: unknown;
+};
 
 @Injectable()
 export class NluService {
-  private readonly registry = new Map<string, any>();
+  private readonly registry = new Map<string, TenantModelRegistry>();
 
   constructor(
     private readonly prisma: PrismaService,
@@ -53,15 +66,21 @@ export class NluService {
         tenantId,
         intentId: dto.intentId,
         text: dto.text,
-        language: dto.language ?? 'es',
-        source: dto.source ?? 'manual',
+        language: dto.language ?? "es",
+        source: dto.source ?? "manual",
         createdBy: dto.createdBy,
       },
     });
 
-    const settings = await this.prisma.tenantNluSettings.findUnique({ where: { tenantId } });
+    const settings = await this.prisma.tenantNluSettings.findUnique({
+      where: { tenantId },
+    });
+
     if (settings?.enableOnlineTraining) {
-      await this.train({ tenantId, createdBy: dto.createdBy || 'system', triggerType: 'auto' });
+      await this.train(tenantId, {
+        createdBy: dto.createdBy || "system",
+        triggerType: NluTrainTrigger.AUTO,
+      });
     }
 
     return created;
@@ -75,16 +94,19 @@ export class NluService {
         tenantId,
         code: dto.code,
         name: dto.name,
-        entityType: dto.entityType as NluEntityType,
+        entityType: dto.entityType,
         validationRule: dto.validationRule,
       },
     });
   }
 
-  async createEntityValue(dto: CreateEntityValueDto) {
-    const entity = await this.prisma.nluEntity.findUnique({ where: { id: dto.entityId } });
-    if (!entity) {
-      throw new NotFoundException('Entity no encontrada');
+  async createEntityValue(tenantId: string, dto: CreateEntityValueDto) {
+    const entity = await this.prisma.nluEntity.findUnique({
+      where: { id: dto.entityId },
+    });
+
+    if (!entity || entity.tenantId !== tenantId) {
+      throw new NotFoundException("Entity no encontrada");
     }
 
     return this.prisma.nluEntityValue.create({
@@ -92,19 +114,30 @@ export class NluService {
         entityId: dto.entityId,
         canonicalValue: dto.canonicalValue,
         synonyms: dto.synonyms ?? [],
-        language: dto.language ?? 'es',
+        language: dto.language ?? "es",
       },
     });
   }
 
-  async createIntentEntity(dto: CreateIntentEntityDto) {
-    const intent = await this.prisma.nluIntent.findUnique({ where: { id: dto.intentId } });
-    const entity = await this.prisma.nluEntity.findUnique({ where: { id: dto.entityId } });
+  async createIntentEntity(tenantId: string, dto: CreateIntentEntityDto) {
+    const intent = await this.prisma.nluIntent.findUnique({
+      where: { id: dto.intentId },
+    });
 
-    if (!intent) throw new NotFoundException('Intent no encontrado');
-    if (!entity) throw new NotFoundException('Entity no encontrada');
+    const entity = await this.prisma.nluEntity.findUnique({
+      where: { id: dto.entityId },
+    });
+
+    if (!intent || intent.tenantId !== tenantId) {
+      throw new NotFoundException("Intent no encontrado");
+    }
+
+    if (!entity || entity.tenantId !== tenantId) {
+      throw new NotFoundException("Entity no encontrada");
+    }
+
     if (intent.tenantId !== entity.tenantId) {
-      throw new BadRequestException('Intent y Entity deben pertenecer al mismo tenant');
+      throw new BadRequestException("Intent y Entity deben pertenecer al mismo tenant");
     }
 
     return this.prisma.nluIntentEntity.create({
@@ -118,17 +151,22 @@ export class NluService {
     });
   }
 
-  async initSettings(tenantId: string, defaultLanguage = 'es') {
+  async initSettings(tenantId: string, defaultLanguage = "es") {
     await this.ensureTenantExists(tenantId);
 
-    const existing = await this.prisma.tenantNluSettings.findUnique({ where: { tenantId } });
-    if (existing) return existing;
+    const existing = await this.prisma.tenantNluSettings.findUnique({
+      where: { tenantId },
+    });
+
+    if (existing) {
+      return existing;
+    }
 
     await this.prisma.nluModelConfig.create({
       data: {
         tenantId,
-        provider: this.configService.get<string>('DEFAULT_LLM_PROVIDER', 'openai'),
-        modelName: this.configService.get<string>('DEFAULT_LLM_MODEL', 'gpt-4o-mini'),
+        provider: this.configService.get<string>("DEFAULT_LLM_PROVIDER", "openai"),
+        modelName: this.configService.get<string>("DEFAULT_LLM_MODEL", "gpt-4o-mini"),
         isDefault: true,
       },
     });
@@ -141,8 +179,9 @@ export class NluService {
     });
   }
 
-  async train(dto: TrainDto) {
-    const { tenantId, createdBy = 'system', triggerType = 'manual' } = dto;
+  async train(tenantId: string, dto: TrainDto) {
+    const { createdBy = "system", triggerType = NluTrainTrigger.MANUAL } = dto;
+
     await this.ensureTenantExists(tenantId);
 
     const utterances = await this.prisma.nluUtterance.findMany({
@@ -157,12 +196,12 @@ export class NluService {
     });
 
     if (utterances.length < 2) {
-      throw new BadRequestException('No hay suficientes utterances para entrenar');
+      throw new BadRequestException("No hay suficientes utterances para entrenar");
     }
 
     const uniqueLabels = [...new Set(utterances.map((u) => u.intent.code))];
     if (uniqueLabels.length < 2) {
-      throw new BadRequestException('Se requieren al menos 2 intents distintos para entrenar');
+      throw new BadRequestException("Se requieren al menos 2 intents distintos para entrenar");
     }
 
     const version = await this.prisma.nluModelVersion.create({
@@ -181,7 +220,7 @@ export class NluService {
         modelVersionId: version.id,
         triggerType,
         datasetSize: utterances.length,
-        status: 'running',
+        status: "running",
         startedAt: new Date(),
       },
     });
@@ -224,8 +263,8 @@ export class NluService {
     await this.prisma.nluTrainingJob.update({
       where: { id: trainingJob.id },
       data: {
-        status: 'completed',
-        logs: 'Entrenamiento completado',
+        status: "completed",
+        logs: "Entrenamiento completado",
         finishedAt: new Date(),
       },
     });
@@ -240,15 +279,18 @@ export class NluService {
     };
   }
 
-  async infer(dto: InferDto): Promise<InferenceResult> {
+  async infer(tenantId: string, dto: InferDto): Promise<InferenceResult> {
     const start = Date.now();
-    const { tenantId, messageText, conversationId, messageId } = dto;
+    const { messageText, conversationId, messageId } = dto;
 
     await this.ensureTenantExists(tenantId);
 
-    const settings = await this.prisma.tenantNluSettings.findUnique({ where: { tenantId } });
+    const settings = await this.prisma.tenantNluSettings.findUnique({
+      where: { tenantId },
+    });
+
     if (!settings) {
-      throw new BadRequestException('TenantNluSettings no configurado. Ejecuta /settings/init');
+      throw new BadRequestException("TenantNluSettings no configurado. Ejecuta /settings/init");
     }
 
     const modelConfig = await this.prisma.nluModelConfig.findFirst({
@@ -260,10 +302,14 @@ export class NluService {
     }
 
     if (!this.registry.has(tenantId)) {
-      throw new BadRequestException('No hay modelo en memoria para este tenant. Ejecuta /train');
+      throw new BadRequestException("No hay modelo en memoria para este tenant. Ejecuta /train");
     }
 
     const trained = this.registry.get(tenantId);
+    if (!trained) {
+      throw new BadRequestException("No hay modelo cargado para este tenant");
+    }
+
     const prediction = this.predictIntent(trained.classifier, messageText);
 
     const intent = prediction.intentCode
@@ -303,13 +349,15 @@ export class NluService {
         prompt: `
 Tenant: ${tenantId}
 Mensaje usuario: ${messageText}
-Intent predicho: ${prediction.intentCode || 'UNKNOWN'}
+Intent predicho: ${prediction.intentCode || "UNKNOWN"}
 Confianza: ${prediction.confidence}
 Entidades: ${JSON.stringify(entities)}
 Devuelve una respuesta útil y una interpretación breve del mensaje.
         `.trim(),
       });
     }
+
+    const latencyMs = Date.now() - start;
 
     const log = await this.prisma.nluInferenceLog.create({
       data: {
@@ -319,9 +367,16 @@ Devuelve una respuesta útil y una interpretación breve del mensaje.
         inputText: messageText,
         detectedIntentId: intent?.id,
         confidenceScore: prediction.confidence,
-        entitiesJson: entities,
+        entitiesJson: {
+          values: entities,
+          trace: {
+            provider: modelConfig?.provider ?? null,
+            latencyMs,
+            fallbackUsed,
+          },
+        },
         modelUsed: trained.version,
-        latencyMs: Date.now() - start,
+        latencyMs,
         fallbackUsed,
       },
     });
@@ -341,12 +396,12 @@ Devuelve una respuesta útil y una interpretación breve del mensaje.
     };
   }
 
-  async saveFeedback(dto: FeedbackDto) {
-    await this.ensureTenantExists(dto.tenantId);
+  async saveFeedback(tenantId: string, dto: FeedbackDto) {
+    await this.ensureTenantExists(tenantId);
 
     return this.prisma.nluFeedback.create({
       data: {
-        tenantId: dto.tenantId,
+        tenantId,
         inferenceLogId: dto.inferenceLogId,
         wasCorrect: dto.wasCorrect,
         correctIntentId: dto.correctIntentId,
@@ -360,7 +415,7 @@ Devuelve una respuesta útil y una interpretación breve del mensaje.
     return this.prisma.nluIntent.findMany({
       where: { tenantId },
       include: { utterances: true, intentEntities: true },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
     });
   }
 
@@ -368,18 +423,18 @@ Devuelve una respuesta útil y una interpretación breve del mensaje.
     return this.prisma.nluEntity.findMany({
       where: { tenantId },
       include: { values: true, intentEntities: true },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
     });
   }
 
-  private async resolveMissingEntities(intentId: string, extracted: Record<string, any>) {
+  private async resolveMissingEntities(intentId: string, extracted: ExtractedEntities) {
     const required = await this.prisma.nluIntentEntity.findMany({
       where: {
         intentId,
         isRequired: true,
       },
       include: { entity: true },
-      orderBy: { validationOrder: 'asc' },
+      orderBy: { validationOrder: "asc" },
     });
 
     return required
@@ -391,7 +446,7 @@ Devuelve una respuesta útil y una interpretación breve del mensaje.
       }));
   }
 
-  private async extractEntities(tenantId: string, text: string) {
+  private async extractEntities(tenantId: string, text: string): Promise<ExtractedEntities> {
     const entities = await this.prisma.nluEntity.findMany({
       where: { tenantId, isActive: true },
       include: {
@@ -401,11 +456,11 @@ Devuelve una respuesta útil y una interpretación breve del mensaje.
       },
     });
 
-    const results: Record<string, any> = {};
+    const results: ExtractedEntities = {};
 
     for (const entity of entities) {
       if (entity.entityType === NluEntityType.REGEX && entity.validationRule) {
-        const regex = new RegExp(entity.validationRule, 'i');
+        const regex = new RegExp(entity.validationRule, "i");
         const match = text.match(regex);
         if (match?.[0]) {
           results[entity.code] = match[0];
@@ -414,9 +469,15 @@ Devuelve una respuesta útil y una interpretación breve del mensaje.
 
       if (entity.entityType === NluEntityType.DICTIONARY) {
         for (const value of entity.values) {
-          const synonyms = Array.isArray(value.synonyms) ? (value.synonyms as string[]) : [];
+          const synonyms = Array.isArray(value.synonyms)
+            ? (value.synonyms as string[])
+            : [];
+
           const variants = [value.canonicalValue, ...synonyms];
-          const found = variants.find((term) => text.toLowerCase().includes(String(term).toLowerCase()));
+          const found = variants.find((term) =>
+            text.toLowerCase().includes(String(term).toLowerCase()),
+          );
+
           if (found) {
             results[entity.code] = value.canonicalValue;
             break;
@@ -433,7 +494,7 @@ Devuelve una respuesta útil y una interpretación breve del mensaje.
       text: string;
       intent: { code: string; name: string };
     }>,
-  ) {
+  ): ClassifierItem[] {
     const grouped = utterances.reduce((acc, item) => {
       if (!acc[item.intent.code]) {
         acc[item.intent.code] = {
@@ -443,10 +504,19 @@ Devuelve una respuesta útil y una interpretación breve del mensaje.
           vocabulary: new Set<string>(),
         };
       }
+
       acc[item.intent.code].examples.push(item.text);
-      this.tokenize(item.text).forEach((token) => acc[item.intent.code].vocabulary.add(token));
+      this.tokenize(item.text).forEach((token) =>
+        acc[item.intent.code].vocabulary.add(token),
+      );
+
       return acc;
-    }, {} as Record<string, { intentCode: string; intentName: string; examples: string[]; vocabulary: Set<string> }>);
+    }, {} as Record<string, {
+      intentCode: string;
+      intentName: string;
+      examples: string[];
+      vocabulary: Set<string>;
+    }>);
 
     return Object.values(grouped).map((item) => ({
       ...item,
@@ -454,7 +524,7 @@ Devuelve una respuesta útil y una interpretación breve del mensaje.
     }));
   }
 
-  private predictIntent(classifier: any[], text: string) {
+  private predictIntent(classifier: ClassifierItem[], text: string) {
     const tokens = this.tokenize(text);
 
     let best: {
@@ -484,9 +554,9 @@ Devuelve una respuesta útil y una interpretación breve del mensaje.
   private tokenize(text: string): string[] {
     return text
       .toLowerCase()
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .replace(/[^a-z0-9áéíóúñü\s]/gi, ' ')
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-z0-9áéíóúñü\s]/gi, " ")
       .split(/\s+/)
       .filter((token) => token && token.length > 1);
   }
@@ -505,10 +575,12 @@ Devuelve una respuesta útil y una interpretación breve del mensaje.
         tenantId,
         status: NluModelStatus.ACTIVE,
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
     });
 
-    if (!latest) return;
+    if (!latest) {
+      return;
+    }
 
     const utterances = await this.prisma.nluUtterance.findMany({
       where: {
@@ -519,7 +591,9 @@ Devuelve una respuesta útil y una interpretación breve del mensaje.
       include: { intent: true },
     });
 
-    if (utterances.length < 2) return;
+    if (utterances.length < 2) {
+      return;
+    }
 
     this.registry.set(tenantId, {
       version: latest.version,
@@ -530,16 +604,26 @@ Devuelve una respuesta útil y una interpretación breve del mensaje.
   }
 
   private async ensureTenantExists(tenantId: string) {
-    const tenant = await this.prisma.tenant.findUnique({ where: { id: tenantId } });
-    if (!tenant) throw new NotFoundException('Tenant no encontrado');
+    const tenant = await this.prisma.tenant.findUnique({
+      where: { id: tenantId },
+    });
+
+    if (!tenant) {
+      throw new NotFoundException("Tenant no encontrado");
+    }
+
     return tenant;
   }
 
   private async ensureIntentBelongsToTenant(intentId: string, tenantId: string) {
-    const intent = await this.prisma.nluIntent.findUnique({ where: { id: intentId } });
+    const intent = await this.prisma.nluIntent.findUnique({
+      where: { id: intentId },
+    });
+
     if (!intent || intent.tenantId !== tenantId) {
-      throw new BadRequestException('Intent no pertenece al tenant');
+      throw new BadRequestException("Intent no pertenece al tenant");
     }
+
     return intent;
   }
 }

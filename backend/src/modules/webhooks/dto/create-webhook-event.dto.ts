@@ -1,14 +1,12 @@
-import { IsObject, IsOptional, IsString, IsUrl, IsUUID } from 'class-validator';
+import { WebhookDirection } from "@prisma/client";
+import { IsEnum, IsObject, IsOptional, IsString, IsUrl, IsUUID } from "class-validator";
 
 export class CreateWebhookEventDto {
   @IsString()
-  tenantId: string;
-
-  @IsString()
   eventName: string;
 
-  @IsString()
-  direction: 'INBOUND' | 'OUTBOUND';
+  @IsEnum(WebhookDirection)
+  direction: WebhookDirection;
 
   @IsOptional()
   @IsUUID()
@@ -23,5 +21,5 @@ export class CreateWebhookEventDto {
   targetUrl?: string;
 
   @IsObject()
-  payloadJson: Record<string, any>;
+  payloadJson: Record<string, unknown>;
 }

@@ -14,6 +14,9 @@ import { ContinueFlowExecutionDto } from './dto/continue-flow-execution.dto';
 import { ExecuteFlowDto } from './dto/execute-flow.dto';
 import { FlowVariableService } from './flow-variable.service';
 
+type StartExecutionInput = ExecuteFlowDto & {
+  tenantId: string;
+};
 @Injectable()
 export class FlowExecutionRuntimeService {
   constructor(
@@ -21,7 +24,7 @@ export class FlowExecutionRuntimeService {
     private readonly variableService: FlowVariableService,
   ) { }
 
-  async startExecution(dto: ExecuteFlowDto) {
+  async startExecution(dto: StartExecutionInput) {
     const flow = await this.prisma.flow.findFirst({
       where: {
         id: dto.flowId,
@@ -52,7 +55,7 @@ export class FlowExecutionRuntimeService {
         userId: dto.userId,
         channel: dto.channel,
         lastInputText: dto.inputText,
-        contextJson: dto.payload ?? {},
+        contextJson: this.toPrismaJson(dto.payload),
       },
     });
 
@@ -90,7 +93,7 @@ export class FlowExecutionRuntimeService {
       data: {
         status: FlowExecutionStatus.RUNNING,
         lastInputText: dto.inputText,
-        contextJson: dto.payload ?? execution.contextJson ?? {},
+        contextJson: this.mergeContextJson(dto.payload, execution.contextJson),
       },
     });
 
@@ -601,5 +604,24 @@ export class FlowExecutionRuntimeService {
     }
 
     return value as Record<string, unknown>;
+  }
+
+  private toPrismaJson(value: Record<string, unknown> | undefined): Prisma.InputJsonValue {
+    return (value ?? {}) as Prisma.InputJsonValue;
+  }
+
+  private mergeContextJson(
+    payload: Record<string, unknown> | undefined,
+    current: Prisma.JsonValue | null,
+  ): Prisma.InputJsonValue {
+    if (payload !== undefined) {
+      return payload as Prisma.InputJsonValue;
+    }
+
+    if (current !== null) {
+      return current as Prisma.InputJsonValue;
+    }
+
+    return {} as Prisma.InputJsonValue;
   }
 }

@@ -1,13 +1,14 @@
-import { IsObject, IsOptional, IsString } from 'class-validator';
+import { WebhookEventStatus } from "@prisma/client";
+import { IsEnum, IsObject, IsOptional, IsString } from "class-validator";
 
 export class RespondWebhookDto {
   @IsOptional()
-  @IsString()
-  status?: 'SUCCESS' | 'FAILED';
+  @IsEnum(WebhookEventStatus)
+  status?: WebhookEventStatus;
 
   @IsOptional()
   @IsObject()
-  responseJson?: Record<string, any>;
+  responseJson?: Record<string, unknown>;
 
   @IsOptional()
   @IsString()

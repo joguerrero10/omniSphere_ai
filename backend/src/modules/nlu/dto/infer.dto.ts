@@ -1,10 +1,9 @@
-import { IsOptional, IsString } from 'class-validator';
+import { IsBoolean, IsOptional, IsString, MaxLength, MinLength } from "class-validator";
 
 export class InferDto {
   @IsString()
-  tenantId: string;
-
-  @IsString()
+  @MinLength(1)
+  @MaxLength(4000)
   messageText: string;
 
   @IsOptional()
@@ -17,15 +16,13 @@ export class InferDto {
 
   @IsOptional()
   @IsString()
-  language?: string = 'es';
+  language?: string = "es";
 
   @IsOptional()
   @IsString()
-  channel?: string = 'WEBCHAT';
-
-  @IsString()
-  prompt?: string;
+  channel?: string = "WEBCHAT";
 
   @IsOptional()
+  @IsBoolean()
   stream?: boolean;
 }

@@ -1,16 +1,13 @@
-import { IsEnum, IsObject, IsOptional, IsString, IsUUID } from 'class-validator';
+import { IsEnum, IsObject, IsOptional, IsString, IsUUID } from "class-validator";
 
 export enum ChannelType {
-  WHATSAPP = 'WHATSAPP',
-  TELEGRAM = 'TELEGRAM',
-  WEBCHAT = 'WEBCHAT',
-  INSTAGRAM = 'INSTAGRAM',
+  WHATSAPP = "WHATSAPP",
+  TELEGRAM = "TELEGRAM",
+  WEBCHAT = "WEBCHAT",
+  INSTAGRAM = "INSTAGRAM",
 }
 
 export class CreateChannelDto {
-  @IsString()
-  tenantId: string;
-
   @IsString()
   name: string;
 
@@ -23,7 +20,7 @@ export class CreateChannelDto {
 
   @IsOptional()
   @IsObject()
-  configJson?: Record<string, any>;
+  configJson?: Record<string, unknown>;
 
   @IsOptional()
   @IsString()
