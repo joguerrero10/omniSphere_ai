@@ -8,7 +8,7 @@ import {
 
 export class ExecuteFlowDto {
   @IsUUID()
-  flowId: string;
+  flowId!: string;
 
   @IsOptional()
   @IsString()

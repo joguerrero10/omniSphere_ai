@@ -3,7 +3,7 @@ import { IsBoolean, IsEnum, IsObject, IsOptional } from "class-validator";
 
 export class CreateFlowTriggerDto {
   @IsEnum(FlowTriggerType)
-  type: FlowTriggerType;
+  type!: FlowTriggerType;
 
   @IsOptional()
   @IsBoolean()

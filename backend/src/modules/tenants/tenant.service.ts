@@ -10,11 +10,11 @@ export class TenantsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
-  ) {}
+  ) { }
 
   async create(dto: CreateTenantDto, userId: string) {
     const data: Prisma.TenantCreateInput = {
-      name: dto.name,
+      name: dto.name.trim(),
       plan: dto.plan,
       createdBy: userId,
       ...(dto.metadata !== undefined
@@ -53,7 +53,7 @@ export class TenantsService {
     await this.findByTenantId(id);
 
     const data: Prisma.TenantUpdateInput = {
-      ...(dto.name !== undefined ? { name: dto.name } : {}),
+      ...(dto.name !== undefined ? { name: dto.name.trim() } : {}),
       ...(dto.plan !== undefined ? { plan: dto.plan } : {}),
       ...(dto.metadata !== undefined
         ? { metadata: dto.metadata as Prisma.InputJsonValue }

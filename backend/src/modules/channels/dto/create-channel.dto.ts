@@ -9,10 +9,10 @@ export enum ChannelType {
 
 export class CreateChannelDto {
   @IsString()
-  name: string;
+  name!: string;
 
   @IsEnum(ChannelType)
-  type: ChannelType;
+  type!: ChannelType;
 
   @IsOptional()
   @IsUUID()

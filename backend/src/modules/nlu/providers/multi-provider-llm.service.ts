@@ -30,6 +30,7 @@ export class MultiProviderLlmService {
       if (tried.has(provider)) {
         continue;
       }
+
       tried.add(provider);
 
       try {
@@ -53,6 +54,10 @@ export class MultiProviderLlmService {
         return this.openAiProvider;
       case 'anthropic':
         return this.anthropicProvider;
+      default:
+        throw new ServiceUnavailableException(
+          `Proveedor no soportado: ${provider}`,
+        );
     }
   }
 }

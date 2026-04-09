@@ -2,10 +2,10 @@ import { IsBoolean, IsOptional, IsString } from "class-validator";
 
 export class FeedbackDto {
   @IsString()
-  inferenceLogId: string;
+  inferenceLogId!: string;
 
   @IsBoolean()
-  wasCorrect: boolean;
+  wasCorrect!: boolean;
 
   @IsOptional()
   @IsString()

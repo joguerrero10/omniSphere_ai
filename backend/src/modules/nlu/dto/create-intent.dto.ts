@@ -4,12 +4,12 @@ export class CreateIntentDto {
   @IsString()
   @IsNotEmpty()
   @MaxLength(100)
-  code: string;
+  code!: string;
 
   @IsString()
   @IsNotEmpty()
   @MaxLength(150)
-  name: string;
+  name!: string;
 
   @IsOptional()
   @IsString()

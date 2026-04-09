@@ -48,7 +48,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       throw new UnauthorizedException("Invalid tenant for token");
     }
 
-    const roles: CurrentUserPayload["roles"] = user.roles.map(
+    const roles = user.roles.map(
       (item) => item.role.name as CurrentUserPayload["roles"][number],
     );
 

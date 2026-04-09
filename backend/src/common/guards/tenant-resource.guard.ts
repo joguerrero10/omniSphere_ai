@@ -4,28 +4,28 @@ import {
   ForbiddenException,
   Injectable,
   NotFoundException,
-} from "@nestjs/common";
-import { Reflector } from "@nestjs/core";
-import { PrismaService } from "../../database/prisma.service";
-import { ROLES } from "../constant/roles.constants";
-import { ALLOW_SYSTEM_ADMIN_BYPASS_KEY } from "../decorators/allow-system-admin-bypass.decorator";
-import { TENANT_RESOURCE_KEY } from "../decorators/tenant-resource.decorator";
-import { CurrentUserPayload } from "../interfaces/current-user.interface";
-import { TenantResourceOptions } from "../interfaces/tenant-resource-options.interface";
+} from '@nestjs/common';
+import { Reflector } from '@nestjs/core';
+import { PrismaService } from '../../database/prisma.service';
+import { ROLES } from '../constant/roles.constants';
+import { ALLOW_SYSTEM_ADMIN_BYPASS_KEY } from '../decorators/allow-system-admin-bypass.decorator';
+import { TENANT_RESOURCE_KEY } from '../decorators/tenant-resource.decorator';
+import { CurrentUserPayload } from '../interfaces/current-user.interface';
+import { TenantResourceOptions } from '../interfaces/tenant-resource-options.interface';
 
 @Injectable()
 export class TenantResourceGuard implements CanActivate {
   constructor(
     private readonly reflector: Reflector,
     private readonly prisma: PrismaService,
-  ) {}
+  ) { }
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest();
     const user = request.user as CurrentUserPayload | undefined;
 
     if (!user) {
-      throw new ForbiddenException("Authenticated user not found");
+      throw new ForbiddenException('Authenticated user not found');
     }
 
     const allowSystemAdminBypass =
@@ -55,9 +55,9 @@ export class TenantResourceGuard implements CanActivate {
     const {
       model,
       paramName,
-      tenantField = "tenantId",
-      idField = "id",
-      notFoundMessage = "Resource not found",
+      tenantField = 'tenantId',
+      idField = 'id',
+      notFoundMessage = 'Resource not found',
     } = resourceOptions;
 
     const resourceId = request.params?.[paramName];
@@ -68,9 +68,11 @@ export class TenantResourceGuard implements CanActivate {
       );
     }
 
-    const modelDelegate = (this.prisma as Record<string, any>)[model];
+    const modelDelegate = (this.prisma as unknown as Record<string, unknown>)[model] as
+      | { findFirst?: (args: unknown) => Promise<Record<string, unknown> | null> }
+      | undefined;
 
-    if (!modelDelegate || typeof modelDelegate.findFirst !== "function") {
+    if (!modelDelegate?.findFirst) {
       throw new ForbiddenException(
         `Model "${model}" is not available in PrismaService`,
       );
@@ -92,7 +94,7 @@ export class TenantResourceGuard implements CanActivate {
 
     const resourceTenantId = resource[tenantField];
 
-    if (!resourceTenantId) {
+    if (!resourceTenantId || typeof resourceTenantId !== 'string') {
       throw new ForbiddenException(
         `Resource "${model}" does not expose tenant field "${tenantField}"`,
       );
@@ -100,7 +102,7 @@ export class TenantResourceGuard implements CanActivate {
 
     if (resourceTenantId !== user.tenantId) {
       throw new ForbiddenException(
-        "You do not have access to this tenant resource",
+        'You do not have access to this tenant resource',
       );
     }
 

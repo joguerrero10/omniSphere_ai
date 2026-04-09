@@ -1,5 +1,8 @@
 import { MailerService } from "@nestjs-modules/mailer";
-import { Injectable } from "@nestjs/common";
+import {
+  Injectable,
+  InternalServerErrorException,
+} from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 
 @Injectable()
@@ -7,11 +10,18 @@ export class MailService {
   constructor(
     private readonly mailerService: MailerService,
     private readonly configService: ConfigService,
-  ) {}
+  ) { }
 
   async sendUserInvitationEmail(email: string, token: string): Promise<void> {
     const frontendUrl = this.configService.get<string>("FRONTEND_URL");
-    const invitationUrl = `${frontendUrl}/accept-invitation?token=${token}`;
+
+    if (!frontendUrl) {
+      throw new InternalServerErrorException(
+        "FRONTEND_URL is not configured",
+      );
+    }
+
+    const invitationUrl = `${frontendUrl.replace(/\/$/, "")}/accept-invitation?token=${token}`;
 
     await this.mailerService.sendMail({
       to: email,

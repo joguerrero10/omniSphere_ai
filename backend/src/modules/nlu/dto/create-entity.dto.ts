@@ -5,15 +5,15 @@ export class CreateEntityDto {
   @IsString()
   @IsNotEmpty()
   @MaxLength(100)
-  code: string;
+  code!: string;
 
   @IsString()
   @IsNotEmpty()
   @MaxLength(150)
-  name: string;
+  name!: string;
 
   @IsEnum(NluEntityType)
-  entityType: NluEntityType;
+  entityType!: NluEntityType;
 
   @IsOptional()
   @IsString()

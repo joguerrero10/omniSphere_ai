@@ -2,10 +2,10 @@ import { IsObject, IsOptional, IsString } from 'class-validator';
 
 export class SendChannelMessageDto {
   @IsString()
-  to: string;
+  to!: string;
 
   @IsString()
-  message: string;
+  message!: string;
 
   @IsOptional()
   @IsObject()

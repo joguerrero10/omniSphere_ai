@@ -2,10 +2,10 @@ import { IsArray, IsOptional, IsString } from 'class-validator';
 
 export class CreateEntityValueDto {
   @IsString()
-  entityId: string;
+  entityId!: string;
 
   @IsString()
-  canonicalValue: string;
+  canonicalValue!: string;
 
   @IsOptional()
   @IsArray()

@@ -2,10 +2,10 @@ import { IsOptional, IsString } from 'class-validator';
 
 export class CreateUtteranceDto {
   @IsString()
-  intentId: string;
+  intentId!: string;
 
   @IsString()
-  text: string;
+  text!: string;
 
   @IsOptional()
   @IsString()

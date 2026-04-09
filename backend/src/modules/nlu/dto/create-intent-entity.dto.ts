@@ -2,10 +2,10 @@ import { IsBoolean, IsInt, IsOptional, IsString } from 'class-validator';
 
 export class CreateIntentEntityDto {
   @IsString()
-  intentId: string;
+  intentId!: string;
 
   @IsString()
-  entityId: string;
+  entityId!: string;
 
   @IsOptional()
   @IsBoolean()

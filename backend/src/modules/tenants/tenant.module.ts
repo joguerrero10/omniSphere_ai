@@ -10,4 +10,4 @@ import { TenantsService } from "./tenant.service";
   providers: [TenantsService, PrismaService, AuditService, TenantGuard],
   exports: [TenantsService],
 })
-export class TenantsModule {}
+export class TenantsModule { }

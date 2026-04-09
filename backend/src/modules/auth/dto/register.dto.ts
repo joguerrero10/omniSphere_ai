@@ -8,19 +8,19 @@ import {
 
 export class RegisterDto {
   @IsEmail()
-  email: string;
+  email!: string;
 
   @IsString()
   @MinLength(8)
-  password: string;
+  password!: string;
 
   @IsString()
   @IsNotEmpty()
   @MaxLength(120)
-  tenantName: string;
+  tenantName!: string;
 
   @IsString()
   @IsNotEmpty()
   @MaxLength(60)
-  name: string;
+  name!: string;
 }

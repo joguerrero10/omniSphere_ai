@@ -4,5 +4,5 @@ import { RoleName } from "../../../common/constant/roles.constants";
 export class AssignRolesDto {
   @IsArray()
   @ArrayNotEmpty()
-  roles: RoleName[];
+  roles!: RoleName[];
 }

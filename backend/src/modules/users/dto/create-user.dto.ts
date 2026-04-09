@@ -10,7 +10,7 @@ import { RoleName } from "../../../common/constant/roles.constants";
 
 export class CreateUserDto {
   @IsEmail()
-  email: string;
+  email!: string;
 
   @IsOptional()
   @IsString()
@@ -19,7 +19,7 @@ export class CreateUserDto {
 
   @IsString()
   @MinLength(8)
-  password: string;
+  password!: string;
 
   @IsOptional()
   @IsArray()

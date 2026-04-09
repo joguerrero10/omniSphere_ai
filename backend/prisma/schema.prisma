@@ -186,16 +186,16 @@ enum FlowEdgeConditionType {
 }
 
 model FlowVariable {
-  id           String   @id @default(uuid())
+  id           String           @id @default(uuid())
   flowId       String
   tenantId     String
   name         String
-  type         String
+  type         FlowVariableType
   defaultValue Json?
-  isRequired   Boolean  @default(false)
+  isRequired   Boolean          @default(false)
   description  String?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
 
   flow Flow @relation(fields: [flowId], references: [id], onDelete: Cascade)
 

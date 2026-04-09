@@ -3,10 +3,10 @@ import { IsEnum, IsObject, IsOptional, IsString, IsUrl, IsUUID } from "class-val
 
 export class CreateWebhookEventDto {
   @IsString()
-  eventName: string;
+  eventName!: string;
 
   @IsEnum(WebhookDirection)
-  direction: WebhookDirection;
+  direction!: WebhookDirection;
 
   @IsOptional()
   @IsUUID()
@@ -21,5 +21,5 @@ export class CreateWebhookEventDto {
   targetUrl?: string;
 
   @IsObject()
-  payloadJson: Record<string, unknown>;
+  payloadJson!: Record<string, unknown>;
 }

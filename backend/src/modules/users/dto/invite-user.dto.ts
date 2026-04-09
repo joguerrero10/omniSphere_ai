@@ -9,7 +9,7 @@ import { ROLES, RoleName } from "../../../common/constant/roles.constants";
 
 export class InviteUserDto {
   @IsEmail()
-  email: string;
+  email!: string;
 
   @IsOptional()
   @IsArray()

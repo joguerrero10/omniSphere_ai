@@ -172,8 +172,10 @@ export class UsersService {
   ): Promise<UserResponseDto> {
     this.usersPolicy.canCreate(actor);
 
+    const normalizedEmail = dto.email.trim().toLowerCase();
+
     const existingUser = await this.prisma.user.findUnique({
-      where: { email: dto.email },
+      where: { email: normalizedEmail },
     });
 
     if (existingUser) {
@@ -189,7 +191,7 @@ export class UsersService {
     const createdUser = await this.prisma.$transaction(async (tx) => {
       const user = await tx.user.create({
         data: {
-          email: dto.email,
+          email: normalizedEmail,
           name: dto.name,
           passwordHash,
           tenantId: actor.tenantId,
@@ -403,7 +405,7 @@ export class UsersService {
       );
 
       return this.mapUserResponse(updatedUser);
-    } catch (error) {
+    } catch (error: unknown) {
       if (
         error instanceof Prisma.PrismaClientKnownRequestError &&
         error.code === "P2002"
@@ -588,8 +590,10 @@ export class UsersService {
   ): Promise<{ message: string, token: string }> {
     this.usersPolicy.canCreate(actor);
 
+    const normalizedEmail = dto.email.trim().toLowerCase();
+
     const existingUser = await this.prisma.user.findUnique({
-      where: { email: dto.email },
+      where: { email: normalizedEmail },
     });
 
     if (existingUser) {
@@ -606,7 +610,7 @@ export class UsersService {
 
     const invitation = await this.prisma.userInvitation.create({
       data: {
-        email: dto.email,
+        email: normalizedEmail,
         tenantId: actor.tenantId,
         token,
         roles: rolesToAssign,
@@ -615,7 +619,7 @@ export class UsersService {
     });
 
     try {
-      await this.mailService.sendUserInvitationEmail(dto.email, token);
+      await this.mailService.sendUserInvitationEmail(normalizedEmail, token);
     } catch {
       await this.prisma.userInvitation.delete({
         where: { id: invitation.id },
@@ -625,12 +629,12 @@ export class UsersService {
     }
 
     await this.audit.log(
-      `User invitation sent to: ${dto.email}`,
+      `User invitation sent to: ${normalizedEmail}`,
       actor.tenantId,
       actor.userId,
       {
         invitationId: invitation.id,
-        invitedEmail: dto.email,
+        invitedEmail: normalizedEmail,
       },
     );
 

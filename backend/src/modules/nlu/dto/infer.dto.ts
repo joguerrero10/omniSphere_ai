@@ -4,7 +4,7 @@ export class InferDto {
   @IsString()
   @MinLength(1)
   @MaxLength(4000)
-  messageText: string;
+  messageText!: string;
 
   @IsOptional()
   @IsString()
