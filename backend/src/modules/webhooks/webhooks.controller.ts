@@ -7,7 +7,7 @@ import {
   Param,
   Patch,
   Post,
-  UseGuards,
+  UseGuards
 } from "@nestjs/common";
 import { CurrentUser } from "../../common/decorators/current-user.decorator";
 import { Public } from "../../common/decorators/public.decorator";
