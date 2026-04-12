@@ -1,0 +1,30 @@
+name: Frontend CI/CD
+
+on:
+  push:
+    paths:
+      - "frontend/**"
+    branches:
+      - main
+      - dev
+      - '**'
+  pull_request:
+    branches:
+      - main
+      - dev
+      - '**'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 18
+
+      - name: Install deps
+        run: cd frontend && npm install
+
+      - name: Build
+        run: cd frontend && npm run build

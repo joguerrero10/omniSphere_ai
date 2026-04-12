@@ -1,0 +1,665 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum TenantPlan {
+  FREE
+  PRO
+  ENTERPRISE
+}
+
+model Tenant {
+  id          String           @id @default(uuid())
+  name        String
+  plan        TenantPlan
+  metadata    Json?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  createdBy   String
+
+  users           User[]
+  roles           Role[]
+  auditLogs       AuditLog[]
+  invitations     UserInvitation[]
+  intents         NluIntent[]
+  entities        NluEntity[]
+  modelConfigs    NluModelConfig[]
+  modelVersions   NluModelVersion[]
+  settings        TenantNluSettings?
+
+  utterances      NluUtterance[]
+  trainingJobs    NluTrainingJob[]
+  inferenceLogs   NluInferenceLog[]
+  feedbacks       NluFeedback[]
+  promptTemplates NluPromptTemplate[]
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  action    String
+  tenantId  String
+  userId    String?
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+  user   User?  @relation(fields: [userId], references: [id])
+}
+
+model User {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  name         String?
+  passwordHash String
+  tenantId     String
+  isActive     Boolean   @default(true)
+  lastLoginAt  DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  tenant    Tenant     @relation(fields: [tenantId], references: [id])
+  roles     UserRole[]
+  auditLogs AuditLog[]
+}
+
+model Role {
+  id       String     @id @default(uuid())
+  name     String
+  tenantId String
+  tenant   Tenant     @relation(fields: [tenantId], references: [id])
+  users    UserRole[]
+
+  @@unique([tenantId, name])
+}
+
+model UserRole {
+  id     String @id @default(cuid())
+  userId String
+  roleId String
+
+  user User @relation(fields: [userId], references: [id])
+  role Role @relation(fields: [roleId], references: [id])
+
+  @@unique([userId, roleId])
+}
+
+enum FlowStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum FlowNodeType {
+  MESSAGE
+  CONDITION
+  INTENT
+  WEBHOOK
+  ACTION
+  START
+  END
+}
+
+enum FlowTriggerType {
+  MANUAL
+  WEBHOOK
+  KEYWORD
+  INTENT
+}
+
+model Flow {
+  id          String     @id @default(uuid())
+  tenantId    String
+  name        String
+  description String?
+  status      FlowStatus @default(DRAFT)
+  version     Int        @default(1)
+  isActive    Boolean    @default(true)
+  createdBy   String
+  metadata    Json?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  nodes      FlowNode[]
+  edges      FlowEdge[]
+  variables  FlowVariable[]
+  triggers   FlowTrigger[]
+  executions FlowExecution[]
+  channels   Channel[]
+
+  @@index([tenantId])
+  @@index([tenantId, status])
+}
+
+model FlowNode {
+  id        String       @id @default(uuid())
+  flowId    String
+  tenantId  String
+  type      FlowNodeType
+  key       String
+  label     String
+  positionX Float?
+  positionY Float?
+  config    Json?
+  isEntry   Boolean      @default(false)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  flow Flow @relation(fields: [flowId], references: [id], onDelete: Cascade)
+
+  outgoingEdges FlowEdge[] @relation("FlowEdgeFromNode")
+  incomingEdges FlowEdge[] @relation("FlowEdgeToNode")
+
+  @@unique([flowId, key])
+  @@index([flowId])
+  @@index([tenantId])
+}
+
+model FlowEdge {
+  id            String                 @id @default(uuid())
+  flowId        String
+  sourceNodeId  String
+  targetNodeId  String
+  label         String?
+  conditionType FlowEdgeConditionType?
+  intentName    String?
+  isFallback    Boolean                @default(false)
+  createdAt     DateTime               @default(now())
+  updatedAt     DateTime               @updatedAt
+
+  flow       Flow     @relation(fields: [flowId], references: [id], onDelete: Cascade)
+  sourceNode FlowNode @relation("FlowEdgeFromNode", fields: [sourceNodeId], references: [id], onDelete: Cascade)
+  targetNode FlowNode @relation("FlowEdgeToNode", fields: [targetNodeId], references: [id], onDelete: Cascade)
+
+  @@index([flowId])
+  @@index([sourceNodeId])
+  @@index([targetNodeId])
+}
+
+enum FlowEdgeConditionType {
+  TRUE
+  FALSE
+}
+
+model FlowVariable {
+  id           String           @id @default(uuid())
+  flowId       String
+  tenantId     String
+  name         String
+  type         FlowVariableType
+  defaultValue Json?
+  isRequired   Boolean          @default(false)
+  description  String?
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+
+  flow Flow @relation(fields: [flowId], references: [id], onDelete: Cascade)
+
+  @@unique([flowId, name])
+  @@index([flowId])
+  @@index([tenantId])
+}
+
+model FlowTrigger {
+  id        String          @id @default(uuid())
+  flowId    String
+  tenantId  String
+  type      FlowTriggerType
+  isActive  Boolean         @default(true)
+  config    Json?
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+
+  flow Flow @relation(fields: [flowId], references: [id], onDelete: Cascade)
+
+  @@index([flowId])
+  @@index([tenantId, type])
+}
+
+model FlowExecution {
+  id            String              @id @default(uuid())
+  tenantId      String
+  flowId        String
+  status        FlowExecutionStatus @default(RUNNING)
+  startedAt     DateTime            @default(now())
+  finishedAt    DateTime?
+  currentNodeId String?
+  sessionId     String?
+  userId        String?
+  channel       String?
+  lastInputText String?
+  contextJson   Json?
+  errorMessage  String?
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+
+  flow      Flow                    @relation(fields: [flowId], references: [id], onDelete: Cascade)
+  steps     FlowExecutionStep[]
+  variables FlowExecutionVariable[]
+
+  @@index([tenantId, flowId])
+  @@index([sessionId])
+  @@index([userId])
+  @@index([status])
+}
+
+model FlowExecutionStep {
+  id           String                  @id @default(uuid())
+  executionId  String
+  nodeId       String
+  stepOrder    Int
+  nodeType     FlowNodeType
+  status       FlowExecutionStepStatus @default(SUCCESS)
+  inputText    String?
+  outputJson   Json?
+  errorMessage String?
+  executedAt   DateTime                @default(now())
+  createdAt    DateTime                @default(now())
+
+  execution FlowExecution @relation(fields: [executionId], references: [id], onDelete: Cascade)
+
+  @@index([executionId, stepOrder])
+  @@index([nodeId])
+}
+
+model FlowExecutionVariable {
+  id           String           @id @default(uuid())
+  executionId  String
+  key          String
+  valueType    FlowVariableType
+  valueString  String?
+  valueNumber  Float?
+  valueBoolean Boolean?
+  valueJson    Json?
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+
+  execution FlowExecution @relation(fields: [executionId], references: [id], onDelete: Cascade)
+
+  @@unique([executionId, key])
+  @@index([executionId])
+}
+
+enum FlowExecutionStatus {
+  RUNNING
+  WAITING_INPUT
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum FlowExecutionStepStatus {
+  SUCCESS
+  FAILED
+  SKIPPED
+}
+
+enum FlowVariableType {
+  STRING
+  NUMBER
+  BOOLEAN
+  JSON
+}
+
+enum WebhookDirection {
+  INBOUND
+  OUTBOUND
+}
+
+enum WebhookEventStatus {
+  PENDING
+  SUCCESS
+  FAILED
+}
+
+model WebhookEvent {
+  id             String             @id @default(uuid())
+  tenantId       String
+  flowExecutionId String?
+  channelId      String?
+  direction      WebhookDirection
+  eventName      String
+  targetUrl      String?
+  payloadJson    Json
+  responseJson   Json?
+  status         WebhookEventStatus @default(PENDING)
+  errorMessage   String?
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+
+  @@index([tenantId])
+  @@index([flowExecutionId])
+  @@index([channelId])
+}
+
+model UserInvitation {
+  id         String    @id @default(uuid())
+  email      String
+  tenantId   String
+  token      String    @unique
+  roles      Json?
+  expiresAt  DateTime
+  acceptedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([email])
+}
+
+enum ChannelType {
+  WHATSAPP
+  TELEGRAM
+  WEBCHAT
+  INSTAGRAM
+}
+
+enum ChannelStatus {
+  ACTIVE
+  INACTIVE
+}
+
+model Channel {
+  id             String        @id @default(uuid())
+  tenantId       String
+  name           String
+  type           ChannelType
+  status         ChannelStatus @default(INACTIVE)
+
+  flowId         String?
+  configJson     Json?
+  webhookSecret  String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  flow           Flow?         @relation(fields: [flowId], references: [id])
+
+  @@index([tenantId])
+  @@index([flowId])
+}
+
+enum NluEntityType {
+  REGEX
+  DICTIONARY
+  SYSTEM
+}
+
+enum NluModelStatus {
+  TRAINING
+  ACTIVE
+  DEPRECATED
+  FAILED
+}
+
+enum NluTemplateType {
+  SYSTEM
+  CLASSIFICATION
+  EXTRACTION
+  RESPONSE
+}
+
+model NluIntent {
+  id               String             @id @default(cuid())
+  tenantId         String
+  code             String
+  name             String
+  description      String?
+  isActive         Boolean            @default(true)
+  priority         Int                @default(1)
+  fallbackResponse String?
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+
+  tenant          Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  utterances      NluUtterance[]
+  intentEntities  NluIntentEntity[]
+  promptTemplates NluPromptTemplate[]
+  inferenceLogs   NluInferenceLog[]
+  feedbackAsFix   NluFeedback[]      @relation("FeedbackCorrectIntent")
+
+  @@unique([tenantId, code])
+  @@index([tenantId])
+}
+
+model NluUtterance {
+  id         String    @id @default(cuid())
+  tenantId   String
+  intentId   String
+  text       String
+  language   String    @default("es")
+  source     String    @default("manual")
+  isActive   Boolean   @default(true)
+  createdBy  String?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  intent     NluIntent @relation(fields: [intentId], references: [id], onDelete: Cascade)
+  tenant     Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([intentId])
+}
+
+model NluEntity {
+  id             String             @id @default(cuid())
+  tenantId       String
+  code           String
+  name           String
+  entityType     NluEntityType
+  validationRule String?
+  isActive       Boolean            @default(true)
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+
+  tenant         Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  values         NluEntityValue[]
+  intentEntities NluIntentEntity[]
+
+  @@unique([tenantId, code])
+  @@index([tenantId])
+}
+
+model NluEntityValue {
+  id             String    @id @default(cuid())
+  entityId       String
+  canonicalValue String
+  synonyms       Json?
+  language       String    @default("es")
+  isActive       Boolean   @default(true)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  entity         NluEntity @relation(fields: [entityId], references: [id], onDelete: Cascade)
+
+  @@index([entityId])
+}
+
+model NluIntentEntity {
+  id              String    @id @default(cuid())
+  intentId        String
+  entityId        String
+  isRequired      Boolean   @default(false)
+  promptIfMissing String?
+  validationOrder Int       @default(1)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  intent          NluIntent @relation(fields: [intentId], references: [id], onDelete: Cascade)
+  entity          NluEntity @relation(fields: [entityId], references: [id], onDelete: Cascade)
+
+  @@unique([intentId, entityId])
+  @@index([intentId])
+  @@index([entityId])
+}
+
+model NluModelConfig {
+  id                  String    @id @default(cuid())
+  tenantId            String
+  provider            String    @default("openai")
+  modelName           String    @default("gpt-4o-mini")
+  temperature         Float     @default(0.2)
+  maxTokens           Int       @default(500)
+  confidenceThreshold Float     @default(0.60)
+  fallbackThreshold   Float     @default(0.40)
+  systemPrompt        String?
+  isDefault           Boolean   @default(true)
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  tenant              Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+}
+
+model NluModelVersion {
+  id                 String           @id @default(cuid())
+  tenantId           String
+  version            String
+  status             NluModelStatus   @default(TRAINING)
+  metricsJson        Json?
+  trainingStartedAt  DateTime?
+  trainingFinishedAt DateTime?
+  createdBy          String?
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+
+  tenant             Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  trainingJobs       NluTrainingJob[]
+
+  @@index([tenantId])
+}
+
+model NluTrainingJob {
+  id             String          @id @default(cuid())
+  tenantId       String
+  modelVersionId String
+  triggerType    String          @default("manual")
+  datasetSize    Int             @default(0)
+  status         String          @default("pending")
+  logs           String?
+  startedAt      DateTime?
+  finishedAt     DateTime?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  modelVersion   NluModelVersion @relation(fields: [modelVersionId], references: [id], onDelete: Cascade)
+  tenant         Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+}
+
+model NluInferenceLog {
+  id               String     @id @default(cuid())
+  tenantId         String
+  conversationId   String?
+  messageId        String?
+  inputText        String
+  detectedIntentId String?
+  confidenceScore  Float?
+  entitiesJson     Json?
+  modelUsed        String?
+  latencyMs        Int?
+  fallbackUsed     Boolean    @default(false)
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
+
+  tenant           Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  detectedIntent   NluIntent? @relation(fields: [detectedIntentId], references: [id], onDelete: SetNull)
+  feedback         NluFeedback[]
+
+  @@index([tenantId])
+}
+
+model NluFeedback {
+  id              String           @id @default(cuid())
+  tenantId        String
+  inferenceLogId  String
+  wasCorrect      Boolean          @default(true)
+  correctIntentId String?
+  reviewedBy      String?
+  comments        String?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  tenant          Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  inferenceLog    NluInferenceLog  @relation(fields: [inferenceLogId], references: [id], onDelete: Cascade)
+  correctIntent   NluIntent?       @relation("FeedbackCorrectIntent", fields: [correctIntentId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId])
+}
+
+model NluPromptTemplate {
+  id           String          @id @default(cuid())
+  tenantId     String
+  intentId     String?
+  channel      String?
+  templateType NluTemplateType
+  templateText String
+  isActive     Boolean         @default(true)
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+
+  tenant       Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  intent       NluIntent?      @relation(fields: [intentId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId])
+}
+
+model TenantNluSettings {
+  id                     String   @id @default(cuid())
+  tenantId               String   @unique
+  defaultLanguage        String   @default("es")
+  enableEntityExtraction Boolean  @default(true)
+  enableLlmFallback      Boolean  @default(true)
+  enableOnlineTraining   Boolean  @default(true)
+  minConfidence          Float    @default(0.60)
+  humanHandoffThreshold  Float    @default(0.35)
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+
+  tenant                 Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+}
+
+model LlmTrace {
+  id                String   @id @default(cuid())
+  correlationId     String   @db.VarChar(100)
+  userId            String?  @db.VarChar(100)
+
+  provider          String   @db.VarChar(50)
+  model             String   @db.VarChar(100)
+  taskType          String   @db.VarChar(50)
+
+  promptKey         String?  @db.VarChar(100)
+  promptVersion     Int?
+
+  requestHash       String?  @db.VarChar(128)
+  responseHash      String?  @db.VarChar(128)
+
+  requestPreview    String?  @db.Text
+  responsePreview   String?  @db.Text
+
+  latencyMs         Int
+  status            String   @db.VarChar(30)
+  cacheHit          Boolean  @default(false)
+  fallbackUsed      Boolean  @default(false)
+
+  inputTokens       Int?
+  outputTokens      Int?
+  totalTokens       Int?
+
+  errorCode         String?  @db.VarChar(100)
+  errorMessage      String?  @db.Text
+
+  createdAt         DateTime @default(now())
+
+  @@index([correlationId])
+  @@index([userId, createdAt])
+  @@index([provider, model, createdAt])
+  @@index([taskType, createdAt])
+  @@index([status, createdAt])
+}
