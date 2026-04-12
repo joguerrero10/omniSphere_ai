@@ -5,7 +5,7 @@ import {
 } from "@nestjs/common";
 import { Prisma, User } from "@prisma/client";
 import * as bcrypt from "bcrypt";
-import { randomBytes } from "crypto";
+import { createHash, randomBytes } from "crypto";
 import { AuditService } from "../../common/audit/audit.service";
 import { RoleName, ROLES } from "../../common/constant/roles.constants";
 import { AuditContext } from "../../common/interfaces/audit-context.interface";
@@ -587,7 +587,7 @@ export class UsersService {
   async inviteUser(
     actor: CurrentUserPayload,
     dto: InviteUserDto,
-  ): Promise<{ message: string, token: string }> {
+  ): Promise<{ message: string }> {
     this.usersPolicy.canCreate(actor);
 
     const normalizedEmail = dto.email.trim().toLowerCase();
@@ -606,13 +606,14 @@ export class UsersService {
     this.usersPolicy.canAssignRoles(actor, rolesToAssign);
 
     const token = randomBytes(32).toString("hex");
+    const tokenHash = createHash("sha256").update(token).digest("hex");
     const expiresAt = new Date(Date.now() + 1000 * 60 * 60 * 24);
 
     const invitation = await this.prisma.userInvitation.create({
       data: {
         email: normalizedEmail,
         tenantId: actor.tenantId,
-        token,
+        token: tokenHash,
         roles: rolesToAssign,
         expiresAt,
       },
@@ -640,15 +641,16 @@ export class UsersService {
 
     return {
       message: "Invitation sent successfully",
-      token,
     };
   }
 
   async acceptInvitation(
     dto: AcceptInvitationDto,
   ): Promise<{ message: string }> {
+    const tokenHash = createHash("sha256").update(dto.token).digest("hex");
+
     const invitation = await this.prisma.userInvitation.findUnique({
-      where: { token: dto.token },
+      where: { token: tokenHash },
     });
 
     if (!invitation) {
