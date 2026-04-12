@@ -16,7 +16,10 @@
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
     "lint": "eslint \"src/**/*.ts\"",
-    "seed": "echo \"No seed configured\" && exit 0"
+    "seed": "echo \"No seed configured\" && exit 0",
+    "prebuild": "node scripts/ensure-deps.js",
+    "prestart": "node scripts/ensure-deps.js",
+    "prestart:dev": "node scripts/ensure-deps.js"
   },
   "dependencies": {
     "@nestjs-modules/mailer": "^2.3.4",
