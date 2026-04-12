@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   Injectable,
+  Logger,
   NotFoundException,
 } from "@nestjs/common";
 import { Prisma, User } from "@prisma/client";
@@ -24,6 +25,14 @@ import { UsersPolicy } from "./users.policy";
 
 @Injectable()
 export class UsersService {
+  private readonly logger = new Logger(UsersService.name);
+  private readonly invitationFailureWindowMs = 15 * 60 * 1000;
+  private readonly invitationFailureAlertThreshold = 5;
+  private readonly invitationFailureByToken = new Map<
+    string,
+    { count: number; firstFailureAt: number }
+  >();
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
@@ -646,22 +655,31 @@ export class UsersService {
 
   async acceptInvitation(
     dto: AcceptInvitationDto,
+    auditContext?: AuditContext,
   ): Promise<{ message: string }> {
     const tokenHash = createHash("sha256").update(dto.token).digest("hex");
+    const tokenHashPrefix = tokenHash.slice(0, 12);
 
     const invitation = await this.prisma.userInvitation.findUnique({
       where: { token: tokenHash },
     });
 
     if (!invitation) {
+      this.registerInvitationFailure(tokenHashPrefix, "invalid_token", auditContext);
       throw new BadRequestException("Invalid invitation token");
     }
 
     if (invitation.acceptedAt) {
+      this.registerInvitationFailure(
+        tokenHashPrefix,
+        "already_accepted",
+        auditContext,
+      );
       throw new BadRequestException("Invitation already accepted");
     }
 
     if (invitation.expiresAt < new Date()) {
+      this.registerInvitationFailure(tokenHashPrefix, "expired", auditContext);
       throw new BadRequestException("Invitation expired");
     }
 
@@ -670,6 +688,11 @@ export class UsersService {
     });
 
     if (existingUser) {
+      this.registerInvitationFailure(
+        tokenHashPrefix,
+        "email_already_exists",
+        auditContext,
+      );
       throw new BadRequestException("User with this email already exists");
     }
 
@@ -729,8 +752,44 @@ export class UsersService {
       });
     });
 
+    this.invitationFailureByToken.delete(tokenHashPrefix);
+
     return {
       message: "Invitation accepted successfully",
     };
+  }
+
+  private registerInvitationFailure(
+    tokenHashPrefix: string,
+    reason: string,
+    auditContext?: AuditContext,
+  ): void {
+    const now = Date.now();
+    const entry = this.invitationFailureByToken.get(tokenHashPrefix);
+
+    if (!entry || now - entry.firstFailureAt > this.invitationFailureWindowMs) {
+      this.invitationFailureByToken.set(tokenHashPrefix, {
+        count: 1,
+        firstFailureAt: now,
+      });
+    } else {
+      entry.count += 1;
+      this.invitationFailureByToken.set(tokenHashPrefix, entry);
+    }
+
+    const current = this.invitationFailureByToken.get(tokenHashPrefix);
+    if (!current) {
+      return;
+    }
+
+    this.logger.warn(
+      `Invitation acceptance failed (token=${tokenHashPrefix}, reason=${reason}, count=${current.count}, windowMs=${this.invitationFailureWindowMs}, ip=${auditContext?.ip ?? "unknown"})`,
+    );
+
+    if (current.count >= this.invitationFailureAlertThreshold) {
+      this.logger.error(
+        `High invitation failure rate detected (token=${tokenHashPrefix}, count=${current.count}, windowMs=${this.invitationFailureWindowMs}, ip=${auditContext?.ip ?? "unknown"})`,
+      );
+    }
   }
 }

@@ -10,6 +10,7 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { Request } from 'express';
 import { ROLES } from '../../common/constant/roles.constants';
 import { AllowSystemAdminBypass } from '../../common/decorators/allow-system-admin-bypass.decorator';
@@ -179,7 +180,11 @@ export class UsersController {
 
   @Post('accept-invitation')
   @Public()
-  acceptInvitation(@Body() dto: AcceptInvitationDto) {
-    return this.usersService.acceptInvitation(dto);
+  @Throttle({ default: { limit: 3, ttl: 60_000 } })
+  acceptInvitation(@Body() dto: AcceptInvitationDto, @Req() req: Request) {
+    return this.usersService.acceptInvitation(dto, {
+      ip: req.ip,
+      userAgent: req.headers['user-agent'] ?? 'unknown',
+    });
   }
 }
