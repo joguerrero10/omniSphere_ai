@@ -1,27 +1,128 @@
 :root {
   font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
-  color: #e5e7eb;
-  background: #0b1220;
+  color: #e2e8f0;
+  background: #020617;
+}
+
+* {
+  box-sizing: border-box;
 }
 
 body {
   margin: 0;
 }
 
-.container {
-  max-width: 760px;
-  margin: 4rem auto;
-  padding: 0 1rem;
+.page {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 240px 1fr;
 }
 
-.card {
-  margin-top: 1.5rem;
-  padding: 1rem 1.25rem;
+.page.centered {
+  display: grid;
+  grid-template-columns: 1fr;
+  place-items: center;
+  padding: 2rem;
+}
+
+.sidebar {
+  padding: 1.25rem;
+  border-right: 1px solid #1e293b;
+  background: #0f172a;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.sidebar button {
   border: 1px solid #334155;
-  border-radius: 0.75rem;
-  background: #111827;
+  background: transparent;
+  color: #cbd5e1;
+  text-align: left;
+  border-radius: 0.5rem;
+  padding: 0.55rem 0.75rem;
+  cursor: pointer;
 }
 
-code {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+.sidebar .active {
+  border-color: #60a5fa;
+  color: #eff6ff;
+  background: #1d4ed8;
+}
+
+.sidebar .logout {
+  margin-top: auto;
+}
+
+.tenant-pill {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #93c5fd;
+}
+
+.content {
+  padding: 1.25rem;
+}
+
+.panel {
+  border: 1px solid #1e293b;
+  background: #0b1220;
+  border-radius: 0.75rem;
+  padding: 1rem;
+}
+
+.login-panel {
+  width: min(520px, 100%);
+}
+
+.grid {
+  display: grid;
+  gap: 1rem;
+}
+
+.grid.two {
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+}
+
+.inline-form {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+input,
+select,
+button {
+  font: inherit;
+  color: inherit;
+  border: 1px solid #334155;
+  background: #0f172a;
+  border-radius: 0.5rem;
+  padding: 0.5rem 0.6rem;
+}
+
+button {
+  cursor: pointer;
+}
+
+.field {
+  display: grid;
+  gap: 0.35rem;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th,
+td {
+  border-bottom: 1px solid #1e293b;
+  text-align: left;
+  padding: 0.5rem;
+}
+
+ul {
+  padding-left: 1.2rem;
 }
