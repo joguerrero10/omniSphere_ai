@@ -1,12 +1,16 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, UnauthorizedException } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { PassportStrategy } from "@nestjs/passport";
 import { ExtractJwt, Strategy } from "passport-jwt";
 import { CurrentUserPayload } from "../../common/interfaces/current-user.interface";
+import { PrismaService } from "../../database/prisma.service";
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
-  constructor(private readonly config: ConfigService) {
+  constructor(
+    private readonly config: ConfigService,
+    private readonly prisma: PrismaService,
+  ) {
     const jwtSecret = config.get<string>("JWT_SECRET");
 
     if (!jwtSecret) {
@@ -21,10 +25,37 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   }
 
   async validate(payload: CurrentUserPayload): Promise<CurrentUserPayload> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: payload.userId },
+      include: {
+        roles: {
+          include: {
+            role: true,
+          },
+        },
+      },
+    });
+
+    if (!user) {
+      throw new UnauthorizedException("User not found");
+    }
+
+    if (!user.isActive) {
+      throw new UnauthorizedException("User is inactive");
+    }
+
+    if (user.tenantId !== payload.tenantId) {
+      throw new UnauthorizedException("Invalid tenant for token");
+    }
+
+    const roles = user.roles.map(
+      (item) => item.role.name as CurrentUserPayload["roles"][number],
+    );
+
     return {
-      userId: payload.userId,
-      tenantId: payload.tenantId,
-      roles: payload.roles,
+      userId: user.id,
+      tenantId: user.tenantId,
+      roles,
     };
   }
 }

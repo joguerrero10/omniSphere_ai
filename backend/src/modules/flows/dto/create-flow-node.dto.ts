@@ -11,15 +11,15 @@ import {
 
 export class CreateFlowNodeDto {
   @IsEnum(FlowNodeType)
-  type: FlowNodeType;
+  type!: FlowNodeType;
 
   @IsString()
   @IsNotEmpty()
-  key: string;
+  key!: string;
 
   @IsString()
   @IsNotEmpty()
-  label: string;
+  label!: string;
 
   @IsOptional()
   @IsNumber()

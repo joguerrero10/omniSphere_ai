@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { ExecutionContext, Injectable } from "@nestjs/common";
 import { Reflector } from "@nestjs/core";
 import {
   InjectThrottlerOptions,
@@ -7,7 +7,8 @@ import {
   ThrottlerModuleOptions,
   ThrottlerStorage,
 } from "@nestjs/throttler";
-import { Request } from "express";
+import { Request, Response } from "express";
+import { CurrentUserPayload } from "../interfaces/current-user.interface";
 
 @Injectable()
 export class CustomThrottlerGuard extends ThrottlerGuard {
@@ -22,23 +23,30 @@ export class CustomThrottlerGuard extends ThrottlerGuard {
   }
 
   protected async getTracker(req: Request): Promise<string> {
-    const user = req.user as
-      | {
-          userId?: string;
-          tenantId?: string;
-        }
-      | undefined;
+    const user = req.user as CurrentUserPayload | undefined;
 
     if (user?.userId && user?.tenantId) {
       return `user:${user.userId}:tenant:${user.tenantId}`;
     }
 
     const forwardedFor = req.headers["x-forwarded-for"];
+
     const ip =
       typeof forwardedFor === "string"
-        ? forwardedFor.split(",")[0].trim()
-        : req.ip;
+        ? forwardedFor.split(",")[0]?.trim()
+        : req.ip || req.socket.remoteAddress || "unknown";
 
     return `ip:${ip}`;
+  }
+
+  protected getRequestResponse(
+    context: ExecutionContext,
+  ): { req: Request; res: Response } {
+    const http = context.switchToHttp();
+
+    return {
+      req: http.getRequest<Request>(),
+      res: http.getResponse<Response>(),
+    };
   }
 }

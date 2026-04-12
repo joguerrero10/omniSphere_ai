@@ -10,11 +10,11 @@ import { TenantPlan } from "../enum/tenant-plan";
 export class CreateTenantDto {
   @IsString()
   @MaxLength(120)
-  name: string;
+  name!: string;
 
   @IsString()
   @IsEnum(TenantPlan)
-  plan: TenantPlan;
+  plan!: TenantPlan;
 
   @IsOptional()
   @IsObject()

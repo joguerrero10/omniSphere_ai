@@ -10,7 +10,7 @@ import {
 export class CreateFlowDto {
   @IsString()
   @IsNotEmpty()
-  name: string;
+  name!: string;
 
   @IsOptional()
   @IsString()

@@ -9,10 +9,10 @@ import {
 
 export class CreateFlowEdgeDto {
   @IsUUID()
-  sourceNodeId: string;
+  sourceNodeId!: string;
 
   @IsUUID()
-  targetNodeId: string;
+  targetNodeId!: string;
 
   @IsOptional()
   @IsString()

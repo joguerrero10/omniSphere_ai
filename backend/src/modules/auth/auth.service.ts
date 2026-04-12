@@ -15,11 +15,13 @@ export class AuthService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
-  ) {}
+  ) { }
 
   async register(dto: RegisterDto) {
+    const normalizedEmail = dto.email.trim().toLowerCase();
+
     const existingUser = await this.prisma.user.findUnique({
-      where: { email: dto.email },
+      where: { email: normalizedEmail },
     });
 
     if (existingUser) {
@@ -31,9 +33,9 @@ export class AuthService {
     const result = await this.prisma.$transaction(async (tx) => {
       const tenant = await tx.tenant.create({
         data: {
-          name: dto.tenantName,
+          name: dto.tenantName.trim(),
           plan: "FREE",
-          createdBy: dto.email,
+          createdBy: normalizedEmail,
         },
       });
 
@@ -46,7 +48,8 @@ export class AuthService {
 
       const user = await tx.user.create({
         data: {
-          email: dto.email,
+          name: dto.name.trim(),
+          email: normalizedEmail,
           passwordHash,
           tenantId: tenant.id,
           isActive: true,
@@ -67,6 +70,7 @@ export class AuthService {
       message: "User registered successfully",
       user: {
         id: result.user.id,
+        name: result.user.name,
         email: result.user.email,
         tenantId: result.tenant.id,
         roles: [ROLES.ADMIN_TENANT],
@@ -75,8 +79,10 @@ export class AuthService {
   }
 
   async login(dto: LoginDto) {
+    const normalizedEmail = dto.email.trim().toLowerCase();
+
     const user = await this.prisma.user.findUnique({
-      where: { email: dto.email },
+      where: { email: normalizedEmail },
       include: {
         roles: {
           include: {

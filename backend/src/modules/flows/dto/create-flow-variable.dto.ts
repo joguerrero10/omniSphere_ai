@@ -1,3 +1,4 @@
+import { FlowVariableType } from "@prisma/client";
 import {
   IsBoolean,
   IsNotEmpty,
@@ -9,11 +10,11 @@ import {
 export class CreateFlowVariableDto {
   @IsString()
   @IsNotEmpty()
-  name: string;
+  name!: string;
 
   @IsString()
   @IsNotEmpty()
-  type: string;
+  type!: FlowVariableType;
 
   @IsOptional()
   @IsObject()

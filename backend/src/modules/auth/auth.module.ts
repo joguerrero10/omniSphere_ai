@@ -13,17 +13,18 @@ import { JwtStrategy } from "./jwt.strategy";
 @Module({
   imports: [
     ConfigModule,
+    PassportModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
         secret: config.get<string>("JWT_SECRET"),
-        signOptions: { expiresIn: "1d" },
+        signOptions: { expiresIn: "3h" },
       }),
     }),
-    PassportModule,
     TenantsModule,
   ],
+  controllers: [AuthController],
   providers: [
     AuthService,
     JwtStrategy,
@@ -32,6 +33,5 @@ import { JwtStrategy } from "./jwt.strategy";
     RolesGuard,
   ],
   exports: [AuthService, JwtAuthGuard, RolesGuard],
-  controllers: [AuthController],
 })
-export class AuthModule {}
+export class AuthModule { }
