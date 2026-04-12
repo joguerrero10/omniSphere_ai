@@ -1,27 +1,41 @@
-function App() {
-  return (
-    <main className="container">
-      <h1>OmniSphere AI Frontend</h1>
-      <p>
-        Frontend base listo para desarrollo: React + TypeScript + Vite con scripts
-        de desarrollo, build y preview.
-      </p>
+import { AppProvider } from './context/AppContext';
+import { LoginScreen } from './components/LoginScreen';
+import { Sidebar } from './components/Sidebar';
+import { useAppContext } from './hooks/useAppContext';
+import { AiTrainingPage } from './pages/AiTrainingPage';
+import { CompaniesPage } from './pages/CompaniesPage';
+import { DashboardPage } from './pages/DashboardPage';
+import { FlowsPage } from './pages/FlowsPage';
+import { LogsPage } from './pages/LogsPage';
+import { UsersPage } from './pages/UsersPage';
 
-      <section className="card">
-        <h2>Quick checks</h2>
-        <ul>
-          <li>
-            <code>npm run dev</code> para entorno local.
-          </li>
-          <li>
-            <code>npm run build</code> para validar compilación de producción.
-          </li>
-          <li>
-            <code>npm run preview</code> para revisar el bundle generado.
-          </li>
-        </ul>
+function AppShell() {
+  const { tenant, activeView } = useAppContext();
+
+  if (!tenant) {
+    return <LoginScreen />;
+  }
+
+  return (
+    <main className="page">
+      <Sidebar />
+      <section className="content">
+        {activeView === 'dashboard' && <DashboardPage />}
+        {activeView === 'empresas' && <CompaniesPage />}
+        {activeView === 'usuarios' && <UsersPage />}
+        {activeView === 'flujos' && <FlowsPage />}
+        {activeView === 'ia' && <AiTrainingPage />}
+        {activeView === 'logs' && <LogsPage />}
       </section>
     </main>
+  );
+}
+
+function App() {
+  return (
+    <AppProvider>
+      <AppShell />
+    </AppProvider>
   );
 }
 
