@@ -1,4 +1,4 @@
-import { createContext, useMemo, useState } from 'react';
+import { createContext, useMemo, useState, type ReactNode } from 'react';
 import {
   AppUser,
   AppView,
@@ -43,7 +43,7 @@ export const AppContext = createContext<AppContextValue | null>(null);
 
 const createId = () => crypto.randomUUID().slice(0, 8);
 
-export function AppProvider({ children }: { children: React.ReactNode }) {
+export function AppProvider({ children }: { children: ReactNode }) {
   const [tenant, setTenant] = useState<Tenant | null>(null);
   const [activeView, setActiveView] = useState<AppView>('dashboard');
   const [companies, setCompanies] = useState<Tenant[]>(initialCompanies);
