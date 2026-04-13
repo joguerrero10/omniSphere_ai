@@ -1,7 +1,7 @@
 import { Logger, ValidationPipe } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { NestFactory } from "@nestjs/core";
-import * as express from 'express';
+import * as express from "express";
 import { AppModule } from "./app.module";
 import { PrismaService } from "./database/prisma.service";
 
@@ -14,8 +14,6 @@ async function bootstrap() {
   await prisma.enableShutdownHooks(app);
 
   const port = config.get<number>("PORT") ?? 3000;
-  const corsOrigin =
-    config.get<string>("CORS_ORIGIN") ?? "http://localhost:3001";
 
   app.use(
     express.json({
@@ -35,9 +33,10 @@ async function bootstrap() {
   );
 
   app.enableCors({
-    origin: [corsOrigin],
+    origin: "http://localhost:5173",
     credentials: true,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization", "x-tenant-id"],
   });
 
   app.setGlobalPrefix("api");
@@ -53,10 +52,9 @@ async function bootstrap() {
     }),
   );
 
-  await app.listen(port);
+  await app.listen(port, "0.0.0.0");
 
-  const appUrl = await app.getUrl();
-  logger.log(`Server running on ${appUrl}/api`);
+  logger.log(`Server running on http://localhost:${port}/api`);
 }
 
 bootstrap();
