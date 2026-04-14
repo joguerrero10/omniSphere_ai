@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "../../assets/css/login.css"; // Asegúrate de tener este archivo con los estilos necesarios
+import logo from "../../assets/img/Logo_OmniSphere_AI.png";
 import { useAuth } from "../../hooks/useAuth";
 
 export default function LoginPage() {
@@ -37,12 +38,16 @@ export default function LoginPage() {
       <div className="login-root">
         <div className="login-left">
           <div className="brand">
-            <div className="brand-icon">⚡</div>
-            <span className="brand-name">OmniSphere AI</span>
+            <div className="brand-mark">
+              <img src={logo} alt="OmniSphere AI" />
+            </div>
           </div>
 
           <div className="left-headline">
-            <h2>Inteligencia sin límites para tu empresa</h2>
+            <h2>
+              Inteligencia sin límites <br />
+              para <span>tu empresa</span>
+            </h2>
             <p>
               Gestiona todos tus espacios de trabajo desde un solo lugar. Potenciado por IA.
             </p>
