@@ -3,8 +3,8 @@ import { Link } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth";
 import { tenantService } from "../../services/tenant.service";
 import type { TenantPlan, TenantRecord } from "../../types/tenant.types";
-import { getApiErrorMessage } from "../../utils/apiError";
 import "./companies.css";
+import { getApiErrorMessage } from "../../utils/apiError";
 
 const planOptions: TenantPlan[] = ["BASIC", "PRO", "ENTERPRISE"];
 
