@@ -9,13 +9,10 @@ import {
   UseGuards,
 } from "@nestjs/common";
 import { ROLES } from "../../common/constant/roles.constants";
-import { AllowSystemAdminBypass } from "../../common/decorators/allow-system-admin-bypass.decorator";
 import { CurrentUser } from "../../common/decorators/current-user.decorator";
 import { Roles } from "../../common/decorators/roles.decorator";
-import { TenantResource } from "../../common/decorators/tenant-resource.decorator";
 import { JwtAuthGuard } from "../../common/guards/jwt.guard";
 import { RolesGuard } from "../../common/guards/roles.guard";
-import { TenantResourceGuard } from "../../common/guards/tenant-resource.guard";
 import { CurrentUserPayload } from "../../common/interfaces/current-user.interface";
 import { CreateTenantDto } from "./dto/create-tenant.dto";
 import { UpdateTenantDto } from "./dto/update-tenant.dto";
@@ -48,18 +45,9 @@ export class TenantsController {
   }
 
   @Get(":id")
-  @UseGuards(TenantResourceGuard)
-  @TenantResource({
-    model: "tenant",
-    paramName: "id",
-    tenantField: "id",
-    idField: "id",
-    notFoundMessage: "Tenant not found",
-  })
-  @AllowSystemAdminBypass()
   @Roles(ROLES.ADMIN_TENANT, ROLES.USER, ROLES.ADMIN_SISTEMA)
-  findOne(@Param("id") id: string) {
-    return this.tenantsService.findByTenantId(id);
+  findOne(@Param("id") id: string, @CurrentUser() user: CurrentUserPayload) {
+    return this.tenantsService.findOneVisibleForUser(id, user);
   }
 
   @Patch("me")
@@ -68,40 +56,21 @@ export class TenantsController {
     @Body() dto: UpdateTenantDto,
     @CurrentUser() user: CurrentUserPayload,
   ) {
-    return this.tenantsService.update(user.tenantId, dto, user.userId);
+    return this.tenantsService.update(user.tenantId, dto, user);
   }
 
   @Patch(":id")
-  @UseGuards(TenantResourceGuard)
-  @TenantResource({
-    model: "tenant",
-    paramName: "id",
-    tenantField: "id",
-    idField: "id",
-    notFoundMessage: "Tenant not found",
-  })
-  @AllowSystemAdminBypass()
   @Roles(ROLES.ADMIN_TENANT, ROLES.ADMIN_SISTEMA)
   updateById(
     @Param("id") id: string,
     @Body() dto: UpdateTenantDto,
     @CurrentUser() user: CurrentUserPayload,
   ) {
-    return this.tenantsService.update(id, dto, user.userId);
+    return this.tenantsService.update(id, dto, user);
   }
   @Delete(":id")
-  @UseGuards(TenantResourceGuard)
-  @TenantResource({
-    model: "tenant",
-    paramName: "id",
-    tenantField: "id",
-    idField: "id",
-    notFoundMessage: "Tenant not found",
-  })
-  @AllowSystemAdminBypass()
   @Roles(ROLES.ADMIN_TENANT, ROLES.ADMIN_SISTEMA)
   remove(@Param("id") id: string, @CurrentUser() user: CurrentUserPayload) {
-    return this.tenantsService.remove(id, user.userId);
+    return this.tenantsService.remove(id, user);
   }
-
 }
