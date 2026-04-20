@@ -36,7 +36,7 @@ export class TenantsController {
   }
 
   @Get()
-  @Roles(ROLES.ADMIN_SISTEMA)
+  @Roles(ROLES.ADMIN_SISTEMA, ROLES.ADMIN_TENANT,)
   findAll() {
     return this.tenantsService.findAll();
   }

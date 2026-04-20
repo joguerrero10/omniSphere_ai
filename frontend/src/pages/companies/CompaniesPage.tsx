@@ -54,6 +54,12 @@ export default function CompaniesPage() {
     () => !!user?.roles?.some((role) => role === "ADMIN_TENANT" || role === "ADMIN_SISTEMA"),
     [user?.roles],
   );
+  const isCreatedByCurrentUser = (company: TenantRecord): boolean => {
+    if (!user?.email || !company.createdBy) return false;
+    return company.createdBy.toLowerCase() === user.email.toLowerCase();
+  };
+  const canEditCompany = (company: TenantRecord): boolean =>
+    canManageTenants || company.id === user?.tenantId || isCreatedByCurrentUser(company);
 
   const loadCompanies = async () => {
     setLoading(true);
@@ -101,19 +107,35 @@ export default function CompaniesPage() {
 
     try {
       if (form.id) {
-        await tenantService.update(form.id, { name: form.name.trim(), plan: form.plan });
+        const currentCompany = companies.find((company) => company.id === form.id);
+        const isOwnTenant = form.id === user?.tenantId;
+        const isCreatedByMe = currentCompany ? isCreatedByCurrentUser(currentCompany) : false;
+        if (canManageTenants || isCreatedByMe) {
+          await tenantService.update(form.id, { name: form.name.trim(), plan: form.plan });
+        } else if (canEditMyTenant && isOwnTenant) {
+          await tenantService.updateMyTenant({ name: form.name.trim(), plan: form.plan });
+        } else {
+          throw new Error("Solo puedes actualizar tu empresa o las que creaste.");
+        }
         setAlert({ tone: "success", message: "Empresa actualizada correctamente." });
+        await loadCompanies();
       } else {
         if (!canCreateTenants) {
           throw new Error("No tienes permisos para crear empresas.");
         }
-        await tenantService.create({ name: form.name.trim(), plan: form.plan });
+        const created = await tenantService.create({ name: form.name.trim(), plan: form.plan });
+        if (canManageTenants) {
+          await loadCompanies();
+        } else {
+          // Non-system admins may not list all tenants (GET /tenants -> 403),
+          // so we keep local UI in sync with the successful create response.
+          setCompanies((prev) => [created, ...prev.filter((company) => company.id !== created.id)]);
+        }
         setAlert({ tone: "success", message: "Empresa creada correctamente." });
       }
 
       setForm(emptyForm);
       setNameError("");
-      await loadCompanies();
     } catch (error: unknown) {
       setAlert({
         tone: "error",
@@ -143,6 +165,10 @@ export default function CompaniesPage() {
   };
 
   const handleEdit = (company: TenantRecord) => {
+    if (!canEditCompany(company)) {
+      setAlert({ tone: "error", message: "Solo puedes editar tu empresa o las que creaste." });
+      return;
+    }
     setForm({
       id: company.id,
       name: company.name,
@@ -221,7 +247,9 @@ export default function CompaniesPage() {
                 disabled={
                   saving ||
                   (!form.id && !canCreateTenants) ||
-                  (!!form.id && !canManageTenants && !canEditMyTenant)
+                  (!!form.id &&
+                    !canManageTenants &&
+                    !companies.some((company) => company.id === form.id && canEditCompany(company)))
                 }
               >
                 {saving ? "Guardando..." : form.id ? "Actualizar" : "Crear"}
@@ -266,7 +294,11 @@ export default function CompaniesPage() {
                     <td>{company.plan}</td>
                     <td className="mono">{company.id}</td>
                     <td className="actions-cell">
-                      <button type="button" onClick={() => handleEdit(company)}>
+                      <button
+                        type="button"
+                        onClick={() => handleEdit(company)}
+                        disabled={!canEditCompany(company)}
+                      >
                         Editar
                       </button>
                       <button type="button" className="danger" onClick={() => handleDelete(company.id)}>

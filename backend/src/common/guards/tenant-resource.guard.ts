@@ -85,6 +85,7 @@ export class TenantResourceGuard implements CanActivate {
       select: {
         [idField]: true,
         [tenantField]: true,
+        ...(model === "tenant" ? { createdBy: true } : {}),
       },
     });
 
@@ -98,6 +99,20 @@ export class TenantResourceGuard implements CanActivate {
       throw new ForbiddenException(
         `Resource "${model}" does not expose tenant field "${tenantField}"`,
       );
+    }
+
+    if (model === "tenant") {
+      const resourceCreatedBy = resource.createdBy;
+      const isCreator =
+        typeof resourceCreatedBy === "string" &&
+        (
+          resourceCreatedBy === user.userId ||
+          (!!user.email && resourceCreatedBy.toLowerCase() === user.email.toLowerCase())
+        );
+
+      if (isCreator) {
+        return true;
+      }
     }
 
     if (resourceTenantId !== user.tenantId) {

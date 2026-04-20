@@ -31,6 +31,11 @@ export const tenantService = {
     return data;
   },
 
+  async updateMyTenant(payload: UpdateTenantRequest): Promise<TenantRecord> {
+    const { data } = await api.patch("/tenants/me", payload);
+    return data;
+  },
+
   async remove(id: string): Promise<TenantRecord> {
     const { data } = await api.delete(`/tenants/${id}`);
     return data;

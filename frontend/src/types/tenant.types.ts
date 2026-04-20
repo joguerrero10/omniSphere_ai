@@ -4,6 +4,7 @@ export interface TenantRecord {
   id: string;
   name: string;
   plan: TenantPlan;
+  createdBy?: string;
   metadata?: Record<string, unknown> | null;
   createdAt?: string;
   updatedAt?: string;
