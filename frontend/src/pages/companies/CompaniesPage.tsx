@@ -3,8 +3,8 @@ import { Link } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth";
 import { tenantService } from "../../services/tenant.service";
 import type { TenantPlan, TenantRecord } from "../../types/tenant.types";
-import "./companies.css";
 import { getApiErrorMessage } from "../../utils/apiError";
+import "./companies.css";
 
 const planOptions: TenantPlan[] = ["FREE", "PRO", "ENTERPRISE"];
 
@@ -42,40 +42,64 @@ export default function CompaniesPage() {
   const [nameError, setNameError] = useState<string>("");
   const [alert, setAlert] = useState<AlertState | null>(null);
 
-  const canManageTenants = useMemo(
+  const isSystemAdmin = useMemo(
     () => !!user?.roles?.includes("ADMIN_SISTEMA"),
     [user?.roles],
   );
-  const canCreateTenants = useMemo(
-    () => !!user?.roles?.some((role) => role === "ADMIN_TENANT" || role === "ADMIN_SISTEMA"),
-    [user?.roles],
-  );
-  const canEditMyTenant = useMemo(
-    () => !!user?.roles?.some((role) => role === "ADMIN_TENANT" || role === "ADMIN_SISTEMA"),
-    [user?.roles],
-  );
-  const isCreatedByCurrentUser = (company: TenantRecord): boolean => {
-    if (!user?.email || !company.createdBy) return false;
-    return company.createdBy.toLowerCase() === user.email.toLowerCase();
-  };
-  const canEditCompany = (company: TenantRecord): boolean =>
-    canManageTenants || company.id === user?.tenantId || isCreatedByCurrentUser(company);
 
-  const loadCompanies = async () => {
+  const canEditMyTenant = useMemo(
+    () =>
+      !!user?.roles?.some(
+        (role) => role === "ADMIN_TENANT" || role === "ADMIN_SISTEMA",
+      ),
+    [user?.roles],
+  );
+
+  const canCreateTenants = isSystemAdmin;
+  const canDeleteTenants = isSystemAdmin;
+
+  const pageTitle = isSystemAdmin ? "Empresas" : "Mi empresa";
+  const pageDescription = isSystemAdmin
+    ? "Administración completa de tenants del sistema."
+    : "Consulta y actualización de la empresa asociada a tu cuenta.";
+
+  const formTitle = form.id
+    ? "Editar empresa"
+    : isSystemAdmin
+      ? "Nueva empresa"
+      : "Mi empresa";
+
+  const listTitle = isSystemAdmin ? "Listado de empresas" : "Datos de mi empresa";
+
+  const canEditCompany = (company: TenantRecord): boolean => {
+    if (isSystemAdmin) return true;
+    return company.id === user?.tenantId;
+  };
+
+  const loadCompanies = async (): Promise<TenantRecord[]> => {
     setLoading(true);
+
     try {
-      if (canManageTenants) {
+      if (isSystemAdmin) {
         const data = await tenantService.list();
-        setCompanies(data);
-      } else {
-        const data = await tenantService.getMyTenant();
-        setCompanies(data ? [data] : []);
+        const safeData = Array.isArray(data) ? data : [];
+        setCompanies(safeData);
+        return safeData;
       }
+
+      const myTenant = await tenantService.getMyTenant();
+      const safeData = myTenant ? [myTenant] : [];
+      setCompanies(safeData);
+      return safeData;
     } catch (error: unknown) {
       setAlert({
         tone: "error",
-        message: getApiErrorMessage(error, "No se pudo cargar el listado de empresas."),
+        message: getApiErrorMessage(
+          error,
+          "No se pudo cargar la información de la empresa.",
+        ),
       });
+      return [];
     } finally {
       setLoading(false);
     }
@@ -83,12 +107,26 @@ export default function CompaniesPage() {
 
   useEffect(() => {
     void loadCompanies();
-  }, [canManageTenants]);
+  }, [isSystemAdmin]);
+
+  useEffect(() => {
+    if (!form.id && !isSystemAdmin && companies.length > 0) {
+      const myCompany = companies[0];
+      setForm({
+        id: myCompany.id,
+        name: myCompany.name,
+        plan: myCompany.plan,
+      });
+    }
+  }, [companies, isSystemAdmin, form.id]);
 
   const filtered = useMemo(() => {
     const normalized = query.trim().toLowerCase();
     if (!normalized) return companies;
-    return companies.filter((company) => company.name.toLowerCase().includes(normalized));
+
+    return companies.filter((company) =>
+      company.name.toLowerCase().includes(normalized),
+    );
   }, [companies, query]);
 
   const handleSubmit = async (event: React.FormEvent) => {
@@ -98,7 +136,10 @@ export default function CompaniesPage() {
     setNameError(validationError);
 
     if (validationError) {
-      setAlert({ tone: "error", message: "No se pudo guardar. Corrige los errores del formulario." });
+      setAlert({
+        tone: "error",
+        message: "No se pudo guardar. Corrige los errores del formulario.",
+      });
       return;
     }
 
@@ -108,78 +149,186 @@ export default function CompaniesPage() {
     try {
       if (form.id) {
         const currentCompany = companies.find((company) => company.id === form.id);
-        const isOwnTenant = form.id === user?.tenantId;
-        const isCreatedByMe = currentCompany ? isCreatedByCurrentUser(currentCompany) : false;
-        if (canManageTenants || isCreatedByMe) {
-          await tenantService.update(form.id, { name: form.name.trim(), plan: form.plan });
-        } else if (canEditMyTenant && isOwnTenant) {
-          await tenantService.updateMyTenant({ name: form.name.trim(), plan: form.plan });
-        } else {
-          throw new Error("Solo puedes actualizar tu empresa o las que creaste.");
+
+        if (!currentCompany) {
+          throw new Error("La empresa seleccionada no existe.");
         }
-        setAlert({ tone: "success", message: "Empresa actualizada correctamente." });
-        await loadCompanies();
+
+        if (!canEditCompany(currentCompany)) {
+          throw new Error("No tienes permisos para editar esta empresa.");
+        }
+
+        if (isSystemAdmin) {
+          await tenantService.update(form.id, {
+            name: form.name.trim(),
+            plan: form.plan,
+          });
+        } else {
+          await tenantService.updateMyTenant({
+            name: form.name.trim(),
+            plan: form.plan,
+          });
+        }
+
+        const refreshedCompanies = await loadCompanies();
+
+        if (isSystemAdmin) {
+          const updatedCompany = refreshedCompanies.find(
+            (company) => company.id === form.id,
+          );
+
+          if (updatedCompany) {
+            setForm({
+              id: updatedCompany.id,
+              name: updatedCompany.name,
+              plan: updatedCompany.plan,
+            });
+          }
+        } else {
+          const myCompany = refreshedCompanies[0];
+
+          if (myCompany) {
+            setForm({
+              id: myCompany.id,
+              name: myCompany.name,
+              plan: myCompany.plan,
+            });
+          }
+        }
+
+        setAlert({
+          tone: "success",
+          message: "Empresa actualizada correctamente.",
+        });
       } else {
         if (!canCreateTenants) {
           throw new Error("No tienes permisos para crear empresas.");
         }
-        const created = await tenantService.create({ name: form.name.trim(), plan: form.plan });
-        if (canManageTenants) {
-          await loadCompanies();
+
+        await tenantService.create({
+          name: form.name.trim(),
+          plan: form.plan,
+        });
+
+        const refreshedCompanies = await loadCompanies();
+
+        if (isSystemAdmin) {
+          setForm(emptyForm);
         } else {
-          // Non-system admins may not list all tenants (GET /tenants -> 403),
-          // so we keep local UI in sync with the successful create response.
-          setCompanies((prev) => [created, ...prev.filter((company) => company.id !== created.id)]);
+          const myCompany = refreshedCompanies[0];
+
+          if (myCompany) {
+            setForm({
+              id: myCompany.id,
+              name: myCompany.name,
+              plan: myCompany.plan,
+            });
+          }
         }
-        setAlert({ tone: "success", message: "Empresa creada correctamente." });
+
+        setAlert({
+          tone: "success",
+          message: "Empresa creada correctamente.",
+        });
       }
 
-      setForm(emptyForm);
       setNameError("");
     } catch (error: unknown) {
       setAlert({
         tone: "error",
-        message: getApiErrorMessage(error, "Empresa no creada. Inténtalo nuevamente."),
+        message: getApiErrorMessage(
+          error,
+          form.id
+            ? "No se pudo actualizar la empresa."
+            : "No se pudo crear la empresa.",
+        ),
       });
     } finally {
       setSaving(false);
     }
   };
 
-  const handleDelete = async (id: string) => {
-    const confirmed = window.confirm("¿Seguro que quieres eliminar esta empresa?");
+  const handleDelete = async (company: TenantRecord) => {
+    if (!canDeleteTenants) {
+      setAlert({
+        tone: "error",
+        message: "No tienes permisos para eliminar empresas.",
+      });
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `¿Seguro que quieres eliminar la empresa "${company.name}"?`,
+    );
+
     if (!confirmed) return;
 
-    setAlert(null);
-
     try {
-      await tenantService.remove(id);
-      setAlert({ tone: "success", message: "Empresa eliminada correctamente." });
+      await tenantService.remove(company.id);
+      setAlert({
+        tone: "success",
+        message: "Empresa eliminada correctamente.",
+      });
+
+      if (form.id === company.id) {
+        setForm(emptyForm);
+        setNameError("");
+      }
+
       await loadCompanies();
     } catch (error: unknown) {
       setAlert({
         tone: "error",
-        message: getApiErrorMessage(error, "Empresa no eliminada. Inténtalo nuevamente."),
+        message: getApiErrorMessage(
+          error,
+          "No se pudo eliminar la empresa.",
+        ),
       });
     }
   };
 
   const handleEdit = (company: TenantRecord) => {
     if (!canEditCompany(company)) {
-      setAlert({ tone: "error", message: "Solo puedes editar tu empresa o las que creaste." });
+      setAlert({
+        tone: "error",
+        message: "No tienes permisos para editar esta empresa.",
+      });
       return;
     }
+
     setForm({
       id: company.id,
       name: company.name,
       plan: company.plan,
     });
+
     setNameError("");
-    setAlert({ tone: "info", message: `Editando empresa: ${company.name}` });
+    setAlert({
+      tone: "info",
+      message: `Editando empresa: ${company.name}`,
+    });
   };
 
   const cancelEdit = () => {
-    setForm(emptyForm);
+    if (isSystemAdmin) {
+      setForm(emptyForm);
+      setNameError("");
+      setAlert({ tone: "info", message: "Edición cancelada." });
+      return;
+    }
+
+    const myCompany = companies[0];
+
+    if (myCompany) {
+      setForm({
+        id: myCompany.id,
+        name: myCompany.name,
+        plan: myCompany.plan,
+      });
+    } else {
+      setForm(emptyForm);
+    }
+
     setNameError("");
     setAlert({ tone: "info", message: "Edición cancelada." });
   };
@@ -188,9 +337,10 @@ export default function CompaniesPage() {
     <main className="companies-page">
       <header className="companies-header">
         <div>
-          <h1>Empresas</h1>
-          <p>CRUD completo de empresas (tenant): crear, consultar, actualizar y eliminar.</p>
+          <h1>{pageTitle}</h1>
+          <p>{pageDescription}</p>
         </div>
+
         <div className="companies-actions">
           <Link className="ghost-btn" to="/dashboard">
             Ir al dashboard
@@ -205,10 +355,14 @@ export default function CompaniesPage() {
 
       <section className="companies-grid">
         <article className="panel">
-          <h2>{form.id ? "Editar empresa" : canManageTenants ? "Nueva empresa" : "Empresa"}</h2>
-          {!canCreateTenants && !canEditMyTenant && (
-            <p className="error-msg">No tienes permisos para crear/editar empresas.</p>
+          <h2>{formTitle}</h2>
+
+          {!isSystemAdmin && (
+            <p className="helper-text">
+              Solo puedes editar la empresa asociada a tu cuenta.
+            </p>
           )}
+
           <form onSubmit={handleSubmit} className="company-form">
             <label htmlFor="companyName">Nombre</label>
             <input
@@ -221,7 +375,7 @@ export default function CompaniesPage() {
               }}
               placeholder="Ej: TechCorp"
               required
-              disabled={!canCreateTenants && !canEditMyTenant}
+              disabled={!isSystemAdmin && !canEditMyTenant}
             />
             {nameError && <small className="field-error">{nameError}</small>}
 
@@ -230,9 +384,12 @@ export default function CompaniesPage() {
               id="companyPlan"
               value={form.plan}
               onChange={(event) =>
-                setForm((prev) => ({ ...prev, plan: event.target.value as TenantPlan }))
+                setForm((prev) => ({
+                  ...prev,
+                  plan: event.target.value as TenantPlan,
+                }))
               }
-              disabled={!canCreateTenants && !canEditMyTenant}
+              disabled={!isSystemAdmin && !canEditMyTenant}
             >
               {planOptions.map((plan) => (
                 <option key={plan} value={plan}>
@@ -248,14 +405,21 @@ export default function CompaniesPage() {
                   saving ||
                   (!form.id && !canCreateTenants) ||
                   (!!form.id &&
-                    !canManageTenants &&
-                    !companies.some((company) => company.id === form.id && canEditCompany(company)))
+                    companies.length > 0 &&
+                    !companies.some(
+                      (company) => company.id === form.id && canEditCompany(company),
+                    ))
                 }
               >
                 {saving ? "Guardando..." : form.id ? "Actualizar" : "Crear"}
               </button>
+
               {form.id && (
-                <button type="button" className="ghost-btn" onClick={cancelEdit}>
+                <button
+                  type="button"
+                  className="ghost-btn"
+                  onClick={cancelEdit}
+                >
                   Cancelar
                 </button>
               )}
@@ -265,12 +429,15 @@ export default function CompaniesPage() {
 
         <article className="panel">
           <div className="list-head">
-            <h2>Listado de empresas</h2>
-            <input
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="Buscar por nombre"
-            />
+            <h2>{listTitle}</h2>
+
+            {isSystemAdmin && (
+              <input
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="Buscar por nombre"
+              />
+            )}
           </div>
 
           {loading ? (
@@ -289,7 +456,11 @@ export default function CompaniesPage() {
                 {filtered.map((company) => (
                   <tr key={company.id}>
                     <td>
-                      <Link to={`/empresas/${company.id}`}>{company.name}</Link>
+                      {isSystemAdmin ? (
+                        <Link to={`/empresas/${company.id}`}>{company.name}</Link>
+                      ) : (
+                        company.name
+                      )}
                     </td>
                     <td>{company.plan}</td>
                     <td className="mono">{company.id}</td>
@@ -301,12 +472,20 @@ export default function CompaniesPage() {
                       >
                         Editar
                       </button>
-                      <button type="button" className="danger" onClick={() => handleDelete(company.id)}>
-                        Eliminar
-                      </button>
+
+                      {isSystemAdmin && (
+                        <button
+                          type="button"
+                          className="danger"
+                          onClick={() => handleDelete(company)}
+                        >
+                          Eliminar
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ))}
+
                 {filtered.length === 0 && (
                   <tr>
                     <td colSpan={4}>No hay empresas para mostrar.</td>

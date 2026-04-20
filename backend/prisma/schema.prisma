@@ -20,7 +20,8 @@ model Tenant {
   metadata    Json?
   createdAt   DateTime         @default(now())
   updatedAt   DateTime         @updatedAt
-  createdBy   String
+  createdBy      String?   // legacy / etiqueta visible
+  createdById    String?   // nuevo campo técnico
 
   users           User[]
   roles           Role[]

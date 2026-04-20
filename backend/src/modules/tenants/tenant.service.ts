@@ -18,11 +18,12 @@ export class TenantsService {
     private readonly audit: AuditService,
   ) { }
 
-  async create(dto: CreateTenantDto, userId: string) {
+  async create(dto: CreateTenantDto, user: CurrentUserPayload) {
     const data: Prisma.TenantCreateInput = {
       name: dto.name.trim(),
       plan: dto.plan,
-      createdBy: userId,
+      createdBy: user.email ?? null,
+      createdById: user.userId,
       ...(dto.metadata !== undefined
         ? { metadata: dto.metadata as Prisma.InputJsonValue }
         : {}),
@@ -32,7 +33,7 @@ export class TenantsService {
       data,
     });
 
-    await this.audit.log(`Tenant created: ${tenant.name}`, tenant.id, userId);
+    await this.audit.log(`Tenant created: ${tenant.name}`, tenant.id, user.email ?? user.userId);
 
     return tenant;
   }
@@ -102,20 +103,20 @@ export class TenantsService {
   async findOneVisibleForUser(id: string, user: CurrentUserPayload) {
     const tenant = await this.findByTenantId(id);
 
-    if (this.isSystemAdmin(user.roles) || tenant.createdBy === user.userId) {
+    if (this.isSystemAdmin(user.roles) || user.tenantId === tenant.id) {
       return tenant;
     }
 
-    throw new ForbiddenException("You do not have access to this tenant");
+    throw new ForbiddenException("No tienes acceso a esta empresa.");
   }
 
   private async assertTenantManagementAccess(id: string, user: CurrentUserPayload) {
     const tenant = await this.findByTenantId(id);
 
-    if (this.isSystemAdmin(user.roles) || tenant.createdBy === user.userId) {
+    if (this.isSystemAdmin(user.roles) || user.tenantId === tenant.id) {
       return tenant;
     }
-    throw new ForbiddenException("You can only manage tenants created by your user");
+    throw new ForbiddenException("Puedes actualizar únicamente la empresa asociada a tu cuenta.");
   }
 
   private isSystemAdmin(roles: string[]) {
