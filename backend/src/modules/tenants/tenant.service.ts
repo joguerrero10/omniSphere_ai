@@ -1,6 +1,12 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from "@nestjs/common";
 import { Prisma } from "@prisma/client";
 import { AuditService } from "../../common/audit/audit.service";
+import { ROLES } from "../../common/constant/roles.constants";
+import { CurrentUserPayload } from "../../common/interfaces/current-user.interface";
 import { PrismaService } from "../../database/prisma.service";
 import { CreateTenantDto } from "./dto/create-tenant.dto";
 import { UpdateTenantDto } from "./dto/update-tenant.dto";
@@ -37,6 +43,17 @@ export class TenantsService {
     });
   }
 
+  async findVisibleForUser(user: CurrentUserPayload) {
+    if (this.isSystemAdmin(user.roles)) {
+      return this.findAll();
+    }
+
+    return this.prisma.tenant.findMany({
+      where: { createdBy: user.userId },
+      orderBy: { createdAt: "desc" },
+    });
+  }
+
   async findByTenantId(tenantId: string) {
     const tenant = await this.prisma.tenant.findUnique({
       where: { id: tenantId },
@@ -49,8 +66,8 @@ export class TenantsService {
     return tenant;
   }
 
-  async update(id: string, dto: UpdateTenantDto, userId: string) {
-    await this.findByTenantId(id);
+  async update(id: string, dto: UpdateTenantDto, user: CurrentUserPayload) {
+    await this.assertTenantManagementAccess(id, user);
 
     const data: Prisma.TenantUpdateInput = {
       ...(dto.name !== undefined ? { name: dto.name.trim() } : {}),
@@ -65,20 +82,43 @@ export class TenantsService {
       data,
     });
 
-    await this.audit.log(`Tenant updated: ${tenant.name}`, tenant.id, userId);
+    await this.audit.log(`Tenant updated: ${tenant.name}`, tenant.id, user.userId);
 
     return tenant;
   }
 
-  async remove(id: string, userId: string) {
-    await this.findByTenantId(id);
+  async remove(id: string, user: CurrentUserPayload) {
+    await this.assertTenantManagementAccess(id, user);
 
     const tenant = await this.prisma.tenant.delete({
       where: { id },
     });
 
-    await this.audit.log(`Tenant deleted: ${tenant.name}`, id, userId);
+    await this.audit.log(`Tenant deleted: ${tenant.name}`, id, user.userId);
 
     return tenant;
+  }
+
+  async findOneVisibleForUser(id: string, user: CurrentUserPayload) {
+    const tenant = await this.findByTenantId(id);
+
+    if (this.isSystemAdmin(user.roles) || tenant.createdBy === user.userId) {
+      return tenant;
+    }
+
+    throw new ForbiddenException("You do not have access to this tenant");
+  }
+
+  private async assertTenantManagementAccess(id: string, user: CurrentUserPayload) {
+    const tenant = await this.findByTenantId(id);
+
+    if (this.isSystemAdmin(user.roles) || tenant.createdBy === user.userId) {
+      return tenant;
+    }
+    throw new ForbiddenException("You can only manage tenants created by your user");
+  }
+
+  private isSystemAdmin(roles: string[]) {
+    return Array.isArray(roles) && roles.includes(ROLES.ADMIN_SISTEMA);
   }
 }
