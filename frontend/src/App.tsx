@@ -1,15 +1,10 @@
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 
-
 import { AuthProvider } from "./context/AuthProvider";
 import LoginPage from "./pages/auth/LoginPage";
 import ProtectedRoute from "./pages/auth/ProtectedRoute";
 import SelectTenantPage from "./pages/auth/SelectTenantPage";
-
-
-function DashboardPage() {
-  return <div>Dashboard</div>;
-}
+import DashboardPage from "./pages/dashboard/DashboardPage";
 
 export default function App() {
   return (
