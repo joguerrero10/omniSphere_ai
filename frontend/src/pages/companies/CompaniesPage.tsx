@@ -4,6 +4,7 @@ import { useAuth } from "../../hooks/useAuth";
 import { tenantService } from "../../services/tenant.service";
 import type { TenantPlan, TenantRecord } from "../../types/tenant.types";
 import "./companies.css";
+import { getApiErrorMessage } from "../../utils/apiError";
 
 const planOptions: TenantPlan[] = ["BASIC", "PRO", "ENTERPRISE"];
 
@@ -13,42 +14,53 @@ type FormState = {
   plan: TenantPlan;
 };
 
+type AlertState = {
+  tone: "success" | "error" | "info";
+  message: string;
+};
+
 const emptyForm: FormState = {
   name: "",
   plan: "BASIC",
 };
 
 export default function CompaniesPage() {
-  const { logout, user } = useAuth();
+  const { logout } = useAuth();
   const [companies, setCompanies] = useState<TenantRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string>("");
   const [query, setQuery] = useState("");
   const [form, setForm] = useState<FormState>(emptyForm);
+  const [nameError, setNameError] = useState<string>("");
+  const [alert, setAlert] = useState<AlertState | null>(null);
 
-  const canManageTenants = useMemo(
-    () => !!user?.roles?.includes("ADMIN_SISTEMA"),
-    [user?.roles],
-  );
-  const canEditMyTenant = useMemo(
-    () => !!user?.roles?.some((role) => role === "ADMIN_TENANT" || role === "ADMIN_SISTEMA"),
-    [user?.roles],
-  );
+  const validateCompanyName = (value: string): string => {
+    const trimmed = value.trim();
+
+    if (!trimmed) return "El nombre de la empresa es obligatorio.";
+    if (trimmed.length < 3) return "Debe tener al menos 3 caracteres.";
+    if (trimmed.length > 120) return "Debe tener máximo 120 caracteres.";
+
+    const exists = companies.some((company) => {
+      if (form.id && company.id === form.id) return false;
+      return company.name.trim().toLowerCase() === trimmed.toLowerCase();
+    });
+
+    if (exists) return "Ya existe una empresa con este nombre.";
+
+    return "";
+  };
 
   const loadCompanies = async () => {
     setLoading(true);
-    setError("");
     try {
-      if (canManageTenants) {
-        const data = await tenantService.list();
-        setCompanies(data);
-      } else {
-        const data = await tenantService.getMyTenant();
-        setCompanies(data ? [data] : []);
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "No se pudo cargar empresas");
+      const data = await tenantService.list();
+      setCompanies(data);
+    } catch (error: unknown) {
+      setAlert({
+        tone: "error",
+        message: getApiErrorMessage(error, "No se pudo cargar el listado de empresas."),
+      });
     } finally {
       setLoading(false);
     }
@@ -56,7 +68,7 @@ export default function CompaniesPage() {
 
   useEffect(() => {
     void loadCompanies();
-  }, [canManageTenants]);
+  }, []);
 
   const filtered = useMemo(() => {
     const normalized = query.trim().toLowerCase();
@@ -66,49 +78,55 @@ export default function CompaniesPage() {
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (!form.name.trim()) return;
+
+    const validationError = validateCompanyName(form.name);
+    setNameError(validationError);
+
+    if (validationError) {
+      setAlert({ tone: "error", message: "No se pudo guardar. Corrige los errores del formulario." });
+      return;
+    }
 
     setSaving(true);
-    setError("");
+    setAlert(null);
 
     try {
       if (form.id) {
-        if (canManageTenants) {
-          await tenantService.update(form.id, { name: form.name.trim(), plan: form.plan });
-        } else if (canEditMyTenant) {
-          await tenantService.updateMyTenant({ name: form.name.trim(), plan: form.plan });
-        } else {
-          throw new Error("No tienes permisos para editar la empresa.");
-        }
+        await tenantService.update(form.id, { name: form.name.trim(), plan: form.plan });
+        setAlert({ tone: "success", message: "Empresa actualizada correctamente." });
       } else {
-        if (!canManageTenants) {
-          throw new Error("Solo un admin del sistema puede crear empresas.");
-        }
         await tenantService.create({ name: form.name.trim(), plan: form.plan });
+        setAlert({ tone: "success", message: "Empresa creada correctamente." });
       }
+
       setForm(emptyForm);
+      setNameError("");
       await loadCompanies();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "No se pudo guardar la empresa");
+    } catch (error: unknown) {
+      setAlert({
+        tone: "error",
+        message: getApiErrorMessage(error, "Empresa no creada. Inténtalo nuevamente."),
+      });
     } finally {
       setSaving(false);
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (!canManageTenants) {
-      setError("Solo un admin del sistema puede eliminar empresas.");
-      return;
-    }
     const confirmed = window.confirm("¿Seguro que quieres eliminar esta empresa?");
     if (!confirmed) return;
 
-    setError("");
+    setAlert(null);
+
     try {
       await tenantService.remove(id);
+      setAlert({ tone: "success", message: "Empresa eliminada correctamente." });
       await loadCompanies();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "No se pudo eliminar la empresa");
+    } catch (error: unknown) {
+      setAlert({
+        tone: "error",
+        message: getApiErrorMessage(error, "Empresa no eliminada. Inténtalo nuevamente."),
+      });
     }
   };
 
@@ -118,9 +136,15 @@ export default function CompaniesPage() {
       name: company.name,
       plan: company.plan,
     });
+    setNameError("");
+    setAlert({ tone: "info", message: `Editando empresa: ${company.name}` });
   };
 
-  const cancelEdit = () => setForm(emptyForm);
+  const cancelEdit = () => {
+    setForm(emptyForm);
+    setNameError("");
+    setAlert({ tone: "info", message: "Edición cancelada." });
+  };
 
   return (
     <main className="companies-page">
@@ -139,22 +163,26 @@ export default function CompaniesPage() {
         </div>
       </header>
 
+      {alert && <p className={`alert ${alert.tone}`}>{alert.message}</p>}
+
       <section className="companies-grid">
         <article className="panel">
-          <h2>{form.id ? "Editar empresa" : canManageTenants ? "Nueva empresa" : "Empresa"}</h2>
-          {!canManageTenants && !canEditMyTenant && (
-            <p className="error-msg">No tienes permisos para crear/editar empresas.</p>
-          )}
-          <form onSubmit={handleSubmit} className="company-form">
+          <h2>{form.id ? "Editar empresa" : "Nueva empresa"}</h2>
+          <form onSubmit={handleSubmit} className="company-form" noValidate>
             <label htmlFor="companyName">Nombre</label>
             <input
               id="companyName"
               value={form.name}
-              onChange={(event) => setForm((prev) => ({ ...prev, name: event.target.value }))}
+              onChange={(event) => {
+                const value = event.target.value;
+                setForm((prev) => ({ ...prev, name: value }));
+                setNameError(validateCompanyName(value));
+              }}
               placeholder="Ej: TechCorp"
               required
-              disabled={!canManageTenants && !canEditMyTenant}
+              aria-invalid={!!nameError}
             />
+            {nameError && <small className="field-error">{nameError}</small>}
 
             <label htmlFor="companyPlan">Plan</label>
             <select
@@ -163,7 +191,6 @@ export default function CompaniesPage() {
               onChange={(event) =>
                 setForm((prev) => ({ ...prev, plan: event.target.value as TenantPlan }))
               }
-              disabled={!canManageTenants && !canEditMyTenant}
             >
               {planOptions.map((plan) => (
                 <option key={plan} value={plan}>
@@ -173,14 +200,7 @@ export default function CompaniesPage() {
             </select>
 
             <div className="form-actions">
-              <button
-                type="submit"
-                disabled={
-                  saving ||
-                  (!form.id && !canManageTenants) ||
-                  (!!form.id && !canManageTenants && !canEditMyTenant)
-                }
-              >
+              <button type="submit" disabled={saving}>
                 {saving ? "Guardando..." : form.id ? "Actualizar" : "Crear"}
               </button>
               {form.id && (
@@ -201,8 +221,6 @@ export default function CompaniesPage() {
               placeholder="Buscar por nombre"
             />
           </div>
-
-          {error && <p className="error-msg">{error}</p>}
 
           {loading ? (
             <p>Cargando empresas...</p>

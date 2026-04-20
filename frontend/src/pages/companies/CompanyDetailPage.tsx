@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { tenantService } from "../../services/tenant.service";
 import type { TenantRecord } from "../../types/tenant.types";
+import { getApiErrorMessage } from "../../utils/apiError";
 import "./companies.css";
 
 export default function CompanyDetailPage() {
@@ -17,8 +18,8 @@ export default function CompanyDetailPage() {
       try {
         const data = await tenantService.getById(id);
         setCompany(data);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "No se pudo obtener la empresa");
+      } catch (error: unknown) {
+        setError(getApiErrorMessage(error, "No se pudo obtener la empresa"));
       } finally {
         setLoading(false);
       }
