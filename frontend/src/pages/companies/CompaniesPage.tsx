@@ -5,7 +5,7 @@ import { tenantService } from "../../services/tenant.service";
 import type { TenantPlan, TenantRecord } from "../../types/tenant.types";
 import "./companies.css";
 
-const planOptions: TenantPlan[] = ["BASIC", "PRO", "ENTERPRISE"];
+const planOptions: TenantPlan[] = ["FREE", "PRO", "ENTERPRISE"];
 
 type FormState = {
   id?: string;
@@ -15,7 +15,7 @@ type FormState = {
 
 const emptyForm: FormState = {
   name: "",
-  plan: "BASIC",
+  plan: "FREE",
 };
 
 export default function CompaniesPage() {
@@ -29,6 +29,10 @@ export default function CompaniesPage() {
 
   const canManageTenants = useMemo(
     () => !!user?.roles?.includes("ADMIN_SISTEMA"),
+    [user?.roles],
+  );
+  const canCreateTenants = useMemo(
+    () => !!user?.roles?.some((role) => role === "ADMIN_TENANT" || role === "ADMIN_SISTEMA"),
     [user?.roles],
   );
   const canEditMyTenant = useMemo(
@@ -81,8 +85,8 @@ export default function CompaniesPage() {
           throw new Error("No tienes permisos para editar la empresa.");
         }
       } else {
-        if (!canManageTenants) {
-          throw new Error("Solo un admin del sistema puede crear empresas.");
+        if (!canCreateTenants) {
+          throw new Error("No tienes permisos para crear empresas.");
         }
         await tenantService.create({ name: form.name.trim(), plan: form.plan });
       }
@@ -142,7 +146,7 @@ export default function CompaniesPage() {
       <section className="companies-grid">
         <article className="panel">
           <h2>{form.id ? "Editar empresa" : canManageTenants ? "Nueva empresa" : "Empresa"}</h2>
-          {!canManageTenants && !canEditMyTenant && (
+          {!canCreateTenants && !canEditMyTenant && (
             <p className="error-msg">No tienes permisos para crear/editar empresas.</p>
           )}
           <form onSubmit={handleSubmit} className="company-form">
@@ -153,7 +157,7 @@ export default function CompaniesPage() {
               onChange={(event) => setForm((prev) => ({ ...prev, name: event.target.value }))}
               placeholder="Ej: TechCorp"
               required
-              disabled={!canManageTenants && !canEditMyTenant}
+              disabled={!canCreateTenants && !canEditMyTenant}
             />
 
             <label htmlFor="companyPlan">Plan</label>
@@ -163,7 +167,7 @@ export default function CompaniesPage() {
               onChange={(event) =>
                 setForm((prev) => ({ ...prev, plan: event.target.value as TenantPlan }))
               }
-              disabled={!canManageTenants && !canEditMyTenant}
+              disabled={!canCreateTenants && !canEditMyTenant}
             >
               {planOptions.map((plan) => (
                 <option key={plan} value={plan}>
@@ -177,7 +181,7 @@ export default function CompaniesPage() {
                 type="submit"
                 disabled={
                   saving ||
-                  (!form.id && !canManageTenants) ||
+                  (!form.id && !canCreateTenants) ||
                   (!!form.id && !canManageTenants && !canEditMyTenant)
                 }
               >

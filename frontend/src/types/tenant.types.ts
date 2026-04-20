@@ -1,4 +1,4 @@
-export type TenantPlan = "BASIC" | "PRO" | "ENTERPRISE";
+export type TenantPlan = "FREE" | "PRO" | "ENTERPRISE";
 
 export interface TenantRecord {
   id: string;

@@ -27,7 +27,7 @@ export class TenantsController {
   constructor(private readonly tenantsService: TenantsService) {}
 
   @Post()
-  @Roles(ROLES.ADMIN_SISTEMA)
+  @Roles(ROLES.ADMIN_TENANT, ROLES.ADMIN_SISTEMA)
   create(
     @Body() dto: CreateTenantDto,
     @CurrentUser() user: CurrentUserPayload,
