@@ -19,7 +19,7 @@ export default function App() {
           <Route path="/login" element={<LoginPage />} />
           <Route path="/select-tenant" element={<SelectTenantPage />} />
           <Route
-            path="/dashboard"
+            path="/dashboard" 
             element={
               <ProtectedRoute>
                 <DashboardPage />
