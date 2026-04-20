@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   Patch,
@@ -88,4 +89,19 @@ export class TenantsController {
   ) {
     return this.tenantsService.update(id, dto, user.userId);
   }
+  @Delete(":id")
+  @UseGuards(TenantResourceGuard)
+  @TenantResource({
+    model: "tenant",
+    paramName: "id",
+    tenantField: "id",
+    idField: "id",
+    notFoundMessage: "Tenant not found",
+  })
+  @AllowSystemAdminBypass()
+  @Roles(ROLES.ADMIN_TENANT, ROLES.ADMIN_SISTEMA)
+  remove(@Param("id") id: string, @CurrentUser() user: CurrentUserPayload) {
+    return this.tenantsService.remove(id, user.userId);
+  }
+
 }
