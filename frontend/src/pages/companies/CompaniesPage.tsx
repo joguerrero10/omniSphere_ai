@@ -4,6 +4,7 @@ import { useAuth } from "../../hooks/useAuth";
 import { tenantService } from "../../services/tenant.service";
 import type { TenantPlan, TenantRecord } from "../../types/tenant.types";
 import "./companies.css";
+import { getApiErrorMessage } from "../../utils/apiError";
 
 const planOptions: TenantPlan[] = ["FREE", "PRO", "ENTERPRISE"];
 
@@ -13,9 +14,22 @@ type FormState = {
   plan: TenantPlan;
 };
 
+type AlertState = {
+  tone: "success" | "error" | "info";
+  message: string;
+};
+
 const emptyForm: FormState = {
   name: "",
   plan: "FREE",
+};
+
+const validateCompanyName = (value: string): string => {
+  const trimmed = value.trim();
+  if (!trimmed) return "El nombre es obligatorio.";
+  if (trimmed.length < 2) return "El nombre debe tener al menos 2 caracteres.";
+  if (trimmed.length > 120) return "El nombre no puede superar 120 caracteres.";
+  return "";
 };
 
 export default function CompaniesPage() {
@@ -23,9 +37,10 @@ export default function CompaniesPage() {
   const [companies, setCompanies] = useState<TenantRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string>("");
   const [query, setQuery] = useState("");
   const [form, setForm] = useState<FormState>(emptyForm);
+  const [nameError, setNameError] = useState<string>("");
+  const [alert, setAlert] = useState<AlertState | null>(null);
 
   const canManageTenants = useMemo(
     () => !!user?.roles?.includes("ADMIN_SISTEMA"),
@@ -42,17 +57,14 @@ export default function CompaniesPage() {
 
   const loadCompanies = async () => {
     setLoading(true);
-    setError("");
     try {
-      if (canManageTenants) {
-        const data = await tenantService.list();
-        setCompanies(data);
-      } else {
-        const data = await tenantService.getMyTenant();
-        setCompanies(data ? [data] : []);
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "No se pudo cargar empresas");
+      const data = await tenantService.list();
+      setCompanies(data);
+    } catch (error: unknown) {
+      setAlert({
+        tone: "error",
+        message: getApiErrorMessage(error, "No se pudo cargar el listado de empresas."),
+      });
     } finally {
       setLoading(false);
     }
@@ -60,7 +72,7 @@ export default function CompaniesPage() {
 
   useEffect(() => {
     void loadCompanies();
-  }, [canManageTenants]);
+  }, []);
 
   const filtered = useMemo(() => {
     const normalized = query.trim().toLowerCase();
@@ -70,49 +82,58 @@ export default function CompaniesPage() {
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (!form.name.trim()) return;
+
+    const validationError = validateCompanyName(form.name);
+    setNameError(validationError);
+
+    if (validationError) {
+      setAlert({ tone: "error", message: "No se pudo guardar. Corrige los errores del formulario." });
+      return;
+    }
 
     setSaving(true);
-    setError("");
+    setAlert(null);
 
     try {
       if (form.id) {
-        if (canManageTenants) {
-          await tenantService.update(form.id, { name: form.name.trim(), plan: form.plan });
-        } else if (canEditMyTenant) {
-          await tenantService.updateMyTenant({ name: form.name.trim(), plan: form.plan });
-        } else {
-          throw new Error("No tienes permisos para editar la empresa.");
-        }
+        await tenantService.update(form.id, { name: form.name.trim(), plan: form.plan });
+        setAlert({ tone: "success", message: "Empresa actualizada correctamente." });
       } else {
         if (!canCreateTenants) {
           throw new Error("No tienes permisos para crear empresas.");
         }
         await tenantService.create({ name: form.name.trim(), plan: form.plan });
+        setAlert({ tone: "success", message: "Empresa creada correctamente." });
       }
+
       setForm(emptyForm);
+      setNameError("");
       await loadCompanies();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "No se pudo guardar la empresa");
+    } catch (error: unknown) {
+      setAlert({
+        tone: "error",
+        message: getApiErrorMessage(error, "Empresa no creada. Inténtalo nuevamente."),
+      });
     } finally {
       setSaving(false);
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (!canManageTenants) {
-      setError("Solo un admin del sistema puede eliminar empresas.");
-      return;
-    }
     const confirmed = window.confirm("¿Seguro que quieres eliminar esta empresa?");
     if (!confirmed) return;
 
-    setError("");
+    setAlert(null);
+
     try {
       await tenantService.remove(id);
+      setAlert({ tone: "success", message: "Empresa eliminada correctamente." });
       await loadCompanies();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "No se pudo eliminar la empresa");
+    } catch (error: unknown) {
+      setAlert({
+        tone: "error",
+        message: getApiErrorMessage(error, "Empresa no eliminada. Inténtalo nuevamente."),
+      });
     }
   };
 
@@ -122,9 +143,15 @@ export default function CompaniesPage() {
       name: company.name,
       plan: company.plan,
     });
+    setNameError("");
+    setAlert({ tone: "info", message: `Editando empresa: ${company.name}` });
   };
 
-  const cancelEdit = () => setForm(emptyForm);
+  const cancelEdit = () => {
+    setForm(emptyForm);
+    setNameError("");
+    setAlert({ tone: "info", message: "Edición cancelada." });
+  };
 
   return (
     <main className="companies-page">
@@ -143,6 +170,8 @@ export default function CompaniesPage() {
         </div>
       </header>
 
+      {alert && <p className={`alert ${alert.tone}`}>{alert.message}</p>}
+
       <section className="companies-grid">
         <article className="panel">
           <h2>{form.id ? "Editar empresa" : canManageTenants ? "Nueva empresa" : "Empresa"}</h2>
@@ -154,11 +183,16 @@ export default function CompaniesPage() {
             <input
               id="companyName"
               value={form.name}
-              onChange={(event) => setForm((prev) => ({ ...prev, name: event.target.value }))}
+              onChange={(event) => {
+                const value = event.target.value;
+                setForm((prev) => ({ ...prev, name: value }));
+                setNameError(validateCompanyName(value));
+              }}
               placeholder="Ej: TechCorp"
               required
               disabled={!canCreateTenants && !canEditMyTenant}
             />
+            {nameError && <small className="field-error">{nameError}</small>}
 
             <label htmlFor="companyPlan">Plan</label>
             <select
@@ -205,8 +239,6 @@ export default function CompaniesPage() {
               placeholder="Buscar por nombre"
             />
           </div>
-
-          {error && <p className="error-msg">{error}</p>}
 
           {loading ? (
             <p>Cargando empresas...</p>

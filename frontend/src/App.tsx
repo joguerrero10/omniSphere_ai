@@ -4,6 +4,8 @@ import { AuthProvider } from "./context/AuthProvider";
 import LoginPage from "./pages/auth/LoginPage";
 import ProtectedRoute from "./pages/auth/ProtectedRoute";
 import SelectTenantPage from "./pages/auth/SelectTenantPage";
+import CompaniesPage from "./pages/companies/CompaniesPage";
+import CompanyDetailPage from "./pages/companies/CompanyDetailPage";
 import DashboardPage from "./pages/dashboard/DashboardPage";
 import CompaniesPage from "./pages/companies/CompaniesPage";
 import CompanyDetailPage from "./pages/companies/CompanyDetailPage";
