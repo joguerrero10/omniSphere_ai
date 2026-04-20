@@ -7,9 +7,6 @@ import SelectTenantPage from "./pages/auth/SelectTenantPage";
 import CompaniesPage from "./pages/companies/CompaniesPage";
 import CompanyDetailPage from "./pages/companies/CompanyDetailPage";
 import DashboardPage from "./pages/dashboard/DashboardPage";
-import CompaniesPage from "./pages/companies/CompaniesPage";
-import CompanyDetailPage from "./pages/companies/CompanyDetailPage";
-
 
 export default function App() {
   return (

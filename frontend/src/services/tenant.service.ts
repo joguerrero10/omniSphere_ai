@@ -16,6 +16,11 @@ export const tenantService = {
     return data;
   },
 
+  async getMyTenant(): Promise<TenantRecord> {
+    const { data } = await api.get("/tenants/me");
+    return data;
+  },
+
   async create(payload: CreateTenantRequest): Promise<TenantRecord> {
     const { data } = await api.post("/tenants", payload);
     return data;

@@ -58,8 +58,13 @@ export default function CompaniesPage() {
   const loadCompanies = async () => {
     setLoading(true);
     try {
-      const data = await tenantService.list();
-      setCompanies(data);
+      if (canManageTenants) {
+        const data = await tenantService.list();
+        setCompanies(data);
+      } else {
+        const data = await tenantService.getMyTenant();
+        setCompanies(data ? [data] : []);
+      }
     } catch (error: unknown) {
       setAlert({
         tone: "error",
@@ -72,7 +77,7 @@ export default function CompaniesPage() {
 
   useEffect(() => {
     void loadCompanies();
-  }, []);
+  }, [canManageTenants]);
 
   const filtered = useMemo(() => {
     const normalized = query.trim().toLowerCase();
