@@ -19,7 +19,7 @@ const emptyForm: FormState = {
 };
 
 export default function CompaniesPage() {
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
   const [companies, setCompanies] = useState<TenantRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -27,12 +27,26 @@ export default function CompaniesPage() {
   const [query, setQuery] = useState("");
   const [form, setForm] = useState<FormState>(emptyForm);
 
+  const canManageTenants = useMemo(
+    () => !!user?.roles?.includes("ADMIN_SISTEMA"),
+    [user?.roles],
+  );
+  const canEditMyTenant = useMemo(
+    () => !!user?.roles?.some((role) => role === "ADMIN_TENANT" || role === "ADMIN_SISTEMA"),
+    [user?.roles],
+  );
+
   const loadCompanies = async () => {
     setLoading(true);
     setError("");
     try {
-      const data = await tenantService.list();
-      setCompanies(data);
+      if (canManageTenants) {
+        const data = await tenantService.list();
+        setCompanies(data);
+      } else {
+        const data = await tenantService.getMyTenant();
+        setCompanies(data ? [data] : []);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "No se pudo cargar empresas");
     } finally {
@@ -42,7 +56,7 @@ export default function CompaniesPage() {
 
   useEffect(() => {
     void loadCompanies();
-  }, []);
+  }, [canManageTenants]);
 
   const filtered = useMemo(() => {
     const normalized = query.trim().toLowerCase();
@@ -59,8 +73,17 @@ export default function CompaniesPage() {
 
     try {
       if (form.id) {
-        await tenantService.update(form.id, { name: form.name.trim(), plan: form.plan });
+        if (canManageTenants) {
+          await tenantService.update(form.id, { name: form.name.trim(), plan: form.plan });
+        } else if (canEditMyTenant) {
+          await tenantService.updateMyTenant({ name: form.name.trim(), plan: form.plan });
+        } else {
+          throw new Error("No tienes permisos para editar la empresa.");
+        }
       } else {
+        if (!canManageTenants) {
+          throw new Error("Solo un admin del sistema puede crear empresas.");
+        }
         await tenantService.create({ name: form.name.trim(), plan: form.plan });
       }
       setForm(emptyForm);
@@ -73,6 +96,10 @@ export default function CompaniesPage() {
   };
 
   const handleDelete = async (id: string) => {
+    if (!canManageTenants) {
+      setError("Solo un admin del sistema puede eliminar empresas.");
+      return;
+    }
     const confirmed = window.confirm("¿Seguro que quieres eliminar esta empresa?");
     if (!confirmed) return;
 
@@ -114,7 +141,10 @@ export default function CompaniesPage() {
 
       <section className="companies-grid">
         <article className="panel">
-          <h2>{form.id ? "Editar empresa" : "Nueva empresa"}</h2>
+          <h2>{form.id ? "Editar empresa" : canManageTenants ? "Nueva empresa" : "Empresa"}</h2>
+          {!canManageTenants && !canEditMyTenant && (
+            <p className="error-msg">No tienes permisos para crear/editar empresas.</p>
+          )}
           <form onSubmit={handleSubmit} className="company-form">
             <label htmlFor="companyName">Nombre</label>
             <input
@@ -123,6 +153,7 @@ export default function CompaniesPage() {
               onChange={(event) => setForm((prev) => ({ ...prev, name: event.target.value }))}
               placeholder="Ej: TechCorp"
               required
+              disabled={!canManageTenants && !canEditMyTenant}
             />
 
             <label htmlFor="companyPlan">Plan</label>
@@ -132,6 +163,7 @@ export default function CompaniesPage() {
               onChange={(event) =>
                 setForm((prev) => ({ ...prev, plan: event.target.value as TenantPlan }))
               }
+              disabled={!canManageTenants && !canEditMyTenant}
             >
               {planOptions.map((plan) => (
                 <option key={plan} value={plan}>
@@ -141,7 +173,14 @@ export default function CompaniesPage() {
             </select>
 
             <div className="form-actions">
-              <button type="submit" disabled={saving}>
+              <button
+                type="submit"
+                disabled={
+                  saving ||
+                  (!form.id && !canManageTenants) ||
+                  (!!form.id && !canManageTenants && !canEditMyTenant)
+                }
+              >
                 {saving ? "Guardando..." : form.id ? "Actualizar" : "Crear"}
               </button>
               {form.id && (

@@ -4,15 +4,29 @@ import type {
   UpdateTenantRequest,
 } from "../types/tenant.types";
 import api from "./api";
+import axios from "axios";
 
 export const tenantService = {
   async list(): Promise<TenantRecord[]> {
-    const { data } = await api.get("/tenants");
-    return data;
+    try {
+      const { data } = await api.get("/tenants");
+      return data;
+    } catch (err) {
+      if (axios.isAxiosError(err) && err.response?.status === 403) {
+        const { data } = await api.get("/tenants/me");
+        return data ? [data] : [];
+      }
+      throw err;
+    }
   },
 
   async getById(id: string): Promise<TenantRecord> {
     const { data } = await api.get(`/tenants/${id}`);
+    return data;
+  },
+
+  async getMyTenant(): Promise<TenantRecord> {
+    const { data } = await api.get("/tenants/me");
     return data;
   },
 
@@ -23,6 +37,11 @@ export const tenantService = {
 
   async update(id: string, payload: UpdateTenantRequest): Promise<TenantRecord> {
     const { data } = await api.patch(`/tenants/${id}`, payload);
+    return data;
+  },
+
+  async updateMyTenant(payload: UpdateTenantRequest): Promise<TenantRecord> {
+    const { data } = await api.patch("/tenants/me", payload);
     return data;
   },
 
