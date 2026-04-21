@@ -73,7 +73,7 @@ export class AuthService {
         name: result.user.name,
         email: result.user.email,
         tenantId: result.tenant.id,
-        roles: [ROLES.ADMIN_TENANT],
+        roles: [ROLES.USER],
       },
     };
   }
