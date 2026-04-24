@@ -15,6 +15,7 @@ import { UsersModule } from "./modules/users/users.module";
 import { WebhooksModule } from "./modules/webhooks/webhooks.module";
 import { QueueModule } from "./queue.module";
 import { RedisModule } from "./redis.module";
+import { BotsModule } from './modules/bots/bots.module';
 
 @Module({
   imports: [
@@ -46,6 +47,7 @@ import { RedisModule } from "./redis.module";
     ChannelsModule,
     WebhooksModule,
     NluModule,
+    BotsModule,
   ],
   providers: [
     {

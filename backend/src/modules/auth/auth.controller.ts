@@ -1,25 +1,25 @@
 import {
-  Controller,
-  Post,
   Body,
+  Controller,
   HttpCode,
   HttpStatus,
-  UseGuards,
-  Req,
   Logger,
+  Post,
+  Req,
+  UseGuards,
 } from "@nestjs/common";
 import { AuthGuard } from "@nestjs/passport";
+import { Public } from "../../common/decorators/public.decorator";
 import { AuthService } from "./auth.service";
+import { ChangePasswordDto } from "./dto/change-password.dto";
 import { LoginDto } from "./dto/login.dto";
 import { RegisterDto } from "./dto/register.dto";
-import { ChangePasswordDto } from "./dto/ChangePasswordDto";
-import { Public } from "../../common/decorators/public.decorator";
 
 @Controller("auth")
 export class AuthController {
   private readonly logger = new Logger(AuthController.name);
 
-  constructor(private readonly authService: AuthService) {}
+  constructor(private readonly authService: AuthService) { }
 
 
   @Public()
