@@ -22,7 +22,6 @@ export class TenantsService {
     const data: Prisma.TenantCreateInput = {
       name: dto.name.trim(),
       plan: dto.plan,
-      createdBy: user.email ?? null,
       createdById: user.userId,
       ...(dto.metadata !== undefined
         ? { metadata: dto.metadata as Prisma.InputJsonValue }
@@ -50,7 +49,7 @@ export class TenantsService {
     }
 
     return this.prisma.tenant.findMany({
-      where: { createdBy: user.userId },
+      where: { createdById: user.userId },
       orderBy: { createdAt: "desc" },
     });
   }

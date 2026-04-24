@@ -2,8 +2,8 @@ export type JwtPayload = {
   userId: string;
   tenantId: string;
   roles: string[];
-  iat: number;
-  exp: number;
+  iat?: number;
+  exp?: number;
 };
 
 export function parseJwt(token: string): JwtPayload | null {
