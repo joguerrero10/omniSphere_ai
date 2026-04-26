@@ -33,4 +33,8 @@ export class CreateChannelDto {
   @IsOptional()
   @IsString()
   webhookSecret?: string;
+
+  @IsOptional()
+  @IsString()
+  botId?: string | null
 }

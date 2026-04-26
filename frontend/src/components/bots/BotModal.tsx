@@ -130,16 +130,14 @@ export function BotModal({ bot, onClose, onSave }: BotModalProps) {
                 </div>
                 <div className="field">
                   <label>Modelo IA</label>
-                  <div className="field">
-                    <label>Modelo IA</label>
-                    <select name="model" value={form.model} onChange={handleChange}>
-                      <optgroup label="Groq — Llama">
-                        <option value="llama-3.1-8b-instant">llama-3.1-8b-instant</option>
-                        <option value="llama-3.3-70b-versatile">Llama 3.3 70B Versatile</option>
-                      </optgroup>
-                    </select>
-                    <span className="hint">Escribe o selecciona un modelo</span>
-                  </div>
+                  <select name="model" value={form.model} onChange={handleChange}>
+                    <optgroup label="Groq — Llama">
+                      <option value="llama-3.1-8b-instant">llama-3.1-8b-instant</option>
+                      <option value="llama-3.3-70b-versatile">Llama 3.3 70B Versatile</option>
+                    </optgroup>
+                  </select>
+                  <span className="hint">Escribe o selecciona un modelo</span>
+
                 </div>
                 <div className="field">
                   <label>Estado</label>

@@ -384,6 +384,7 @@ model Channel {
   type           ChannelType
   status         ChannelStatus @default(INACTIVE)
   flowId         String?
+  botId          String?
   configJson     Json?
   webhookSecret  String?
   createdAt      DateTime      @default(now())
@@ -391,9 +392,11 @@ model Channel {
 
   tenant         Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   flow           Flow?         @relation(fields: [flowId], references: [id], onDelete: SetNull)
+  bot            Bot?          @relation(fields: [botId], references: [id], onDelete: SetNull)
 
   @@index([tenantId])
   @@index([flowId])
+  @@index([botId])  
 }
 
 enum NluEntityType {
@@ -715,6 +718,7 @@ model Bot {
   updatedAt     DateTime  @updatedAt
 
   conversations Conversation[]
+  channels      Channel[]
 
   @@map("bots")
   @@index([tenantId])

@@ -1,4 +1,6 @@
+// src/pages/bots/BotsPage.tsx
 import { useCallback, useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { BotCard } from '../../components/bots/BotCard';
 import { BotDetail } from '../../components/bots/BotDetail';
 import { BotModal } from '../../components/bots/BotModal';
@@ -10,7 +12,8 @@ import './BotsPage.css';
 type View = 'list' | 'detail';
 
 export default function BotsPage() {
-  // ─── State ──────────────────────────────────────────────────
+  const navigate = useNavigate();
+
   const [bots, setBots] = useState<Bot[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -18,21 +21,17 @@ export default function BotsPage() {
   const [view, setView] = useState<View>('list');
   const [selectedBot, setSelectedBot] = useState<Bot | null>(null);
 
-  // Modals
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingBot, setEditingBot] = useState<Bot | null>(null);
   const [deletingBot, setDeletingBot] = useState<Bot | null>(null);
 
-  // Toast
   const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null);
 
-  // ─── Helpers ─────────────────────────────────────────────────
   const showToast = (msg: string, type: 'success' | 'error' = 'success') => {
     setToast({ msg, type });
     setTimeout(() => setToast(null), 3000);
   };
 
-  // ─── Load bots ───────────────────────────────────────────────
   const loadBots = useCallback(async () => {
     try {
       setLoading(true);
@@ -48,17 +47,14 @@ export default function BotsPage() {
 
   useEffect(() => { loadBots(); }, [loadBots]);
 
-  // ─── Filtered list ───────────────────────────────────────────
   const filtered = bots.filter((b) =>
     b.name.toLowerCase().includes(search.toLowerCase()) ||
     b.description?.toLowerCase().includes(search.toLowerCase()),
   );
 
-  // Stats
   const totalActive = bots.filter((b) => b.status === 'ACTIVE').length;
   const totalDraft = bots.filter((b) => b.status === 'DRAFT').length;
 
-  // ─── Handlers ────────────────────────────────────────────────
   const handleCreate = async (data: CreateBotPayload) => {
     const newBot = await botsService.create(data);
     setBots((prev) => [newBot, ...prev]);
@@ -105,16 +101,12 @@ export default function BotsPage() {
         <BotDetail
           bot={selectedBot}
           onBack={() => { setView('list'); setSelectedBot(null); }}
-          onEdit={(b) => { setEditingBot(b); }}
+          onEdit={(b) => setEditingBot(b)}
           onDelete={(b) => setDeletingBot(b)}
           onToggleStatus={handleToggleStatus}
         />
         {editingBot && (
-          <BotModal
-            bot={editingBot}
-            onClose={() => setEditingBot(null)}
-            onSave={handleUpdate}
-          />
+          <BotModal bot={editingBot} onClose={() => setEditingBot(null)} onSave={handleUpdate} />
         )}
         {deletingBot && (
           <DeleteConfirmModal
@@ -132,28 +124,39 @@ export default function BotsPage() {
   return (
     <div className="bots-page">
 
+      {/* ── Breadcrumb nav ─────────────────────────────────── */}
+      <nav className="bots-breadcrumb">
+        <button className="breadcrumb-link" onClick={() => navigate('/dashboard')}>
+          Dashboard
+        </button>
+        <span className="breadcrumb-sep">›</span>
+        <span className="breadcrumb-current">Bots</span>
+      </nav>
+
       {/* ── Header ─────────────────────────────────────────── */}
       <div className="bots-header">
-        <div>
+        <div className="bots-header-left">
           <h1 className="bots-title">Bots</h1>
-          <p className="bots-subtitle">
-            {bots.length} bot{bots.length !== 1 ? 's' : ''} ·{' '}
-            {totalActive} activo{totalActive !== 1 ? 's' : ''} ·{' '}
-            {totalDraft} borrador{totalDraft !== 1 ? 'es' : ''}
-          </p>
+          <div className="bots-counters">
+            <span className="counter counter--total">{bots.length} total</span>
+            <span className="counter counter--active">{totalActive} activos</span>
+            {totalDraft > 0 && (
+              <span className="counter counter--draft">{totalDraft} borradores</span>
+            )}
+          </div>
         </div>
         <button className="btn-primary" onClick={() => setShowCreateModal(true)}>
-          + Nuevo bot
+          <span>+</span> Nuevo bot
         </button>
       </div>
 
-      {/* ── Search bar ─────────────────────────────────────── */}
+      {/* ── Search ─────────────────────────────────────────── */}
       <div className="bots-toolbar">
         <div className="search-wrapper">
           <span className="search-icon">⌕</span>
           <input
             className="search-input"
-            placeholder="Buscar bots..."
+            placeholder="Buscar por nombre o descripción..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
@@ -178,18 +181,17 @@ export default function BotsPage() {
         <div className="bots-empty">
           {search ? (
             <>
-              <p className="empty-icon">⌕</p>
-              <p>No hay bots que coincidan con <strong>{search}</strong></p>
-              <button className="btn-ghost" onClick={() => setSearch('')}>
-                Limpiar búsqueda
-              </button>
+              <div className="empty-icon">⌕</div>
+              <p>Sin resultados para <strong>"{search}"</strong></p>
+              <button className="btn-ghost" onClick={() => setSearch('')}>Limpiar búsqueda</button>
             </>
           ) : (
             <>
-              <p className="empty-icon">◈</p>
+              <div className="empty-icon">◈</div>
               <p>Aún no tienes ningún bot</p>
+              <p className="empty-sub">Crea tu primer asistente de IA</p>
               <button className="btn-primary" onClick={() => setShowCreateModal(true)}>
-                Crear primer bot
+                + Crear primer bot
               </button>
             </>
           )}
@@ -211,17 +213,10 @@ export default function BotsPage() {
 
       {/* ── Modals ─────────────────────────────────────────── */}
       {showCreateModal && (
-        <BotModal
-          onClose={() => setShowCreateModal(false)}
-          onSave={handleCreate}
-        />
+        <BotModal onClose={() => setShowCreateModal(false)} onSave={handleCreate} />
       )}
       {editingBot && (
-        <BotModal
-          bot={editingBot}
-          onClose={() => setEditingBot(null)}
-          onSave={handleUpdate}
-        />
+        <BotModal bot={editingBot} onClose={() => setEditingBot(null)} onSave={handleUpdate} />
       )}
       {deletingBot && (
         <DeleteConfirmModal
@@ -231,10 +226,7 @@ export default function BotsPage() {
         />
       )}
 
-      {/* ── Toast ──────────────────────────────────────────── */}
-      {toast && (
-        <div className={`toast toast--${toast.type}`}>{toast.msg}</div>
-      )}
+      {toast && <div className={`toast toast--${toast.type}`}>{toast.msg}</div>}
     </div>
   );
 }

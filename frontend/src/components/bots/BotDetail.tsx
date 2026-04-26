@@ -1,8 +1,8 @@
-// src/components/bots/BotDetail.tsx
 import { useState } from 'react';
 import type { Bot } from '../../types/bots';
 import { BOT_MODEL_LABELS, BOT_STATUS_LABELS } from '../../types/bots';
 import { BotChat } from './BotChat';
+import { WhatsAppConnect } from './WhatsAppConnect';
 
 interface BotDetailProps {
   bot: Bot;
@@ -13,12 +13,8 @@ interface BotDetailProps {
 }
 
 const MODEL_ICONS: Record<string, string> = {
-  GPT_4O: '◈',
-  GPT_4O_MINI: '◇',
-  CLAUDE_3_5_SONNET: '✦',
-  CLAUDE_3_HAIKU: '✧',
-  GEMINI_PRO: '◆',
-  GROQ: '◆',
+  GPT_4O: '◈', GPT_4O_MINI: '◇', CLAUDE_3_5_SONNET: '✦',
+  CLAUDE_3_HAIKU: '✧', GEMINI_PRO: '◆', GROQ: '◆',
 };
 
 const STATUS_CONFIG = {
@@ -27,7 +23,7 @@ const STATUS_CONFIG = {
   DRAFT: { label: 'Borrador', class: 'status-draft' },
 };
 
-type DetailTab = 'overview' | 'chat';
+type DetailTab = 'overview' | 'chat' | 'whatsapp';
 
 export function BotDetail({ bot, onBack, onEdit, onDelete, onToggleStatus }: BotDetailProps) {
   const [tab, setTab] = useState<DetailTab>('overview');
@@ -44,16 +40,12 @@ export function BotDetail({ bot, onBack, onEdit, onDelete, onToggleStatus }: Bot
     <div className="detail-view">
       {/* Top bar */}
       <div className="detail-topbar">
-        <button className="btn-back" onClick={onBack}>
-          ← Volver a Bots
-        </button>
+        <button className="btn-back" onClick={onBack}>← Volver a Bots</button>
         <div className="detail-actions">
           <button className="btn-outline" onClick={() => onToggleStatus(bot)}>
             {bot.status === 'ACTIVE' ? '⏸ Desactivar' : '▶ Activar'}
           </button>
-          <button className="btn-outline" onClick={() => onEdit(bot)}>
-            ✎ Editar
-          </button>
+          <button className="btn-outline" onClick={() => onEdit(bot)}>✎ Editar</button>
           <button className="btn-outline btn-outline--danger" onClick={() => onDelete(bot)}>
             ✕ Eliminar
           </button>
@@ -70,8 +62,7 @@ export function BotDetail({ bot, onBack, onEdit, onDelete, onToggleStatus }: Bot
         <div className="detail-hero-info">
           <div className="detail-badges">
             <span className={`status-badge ${status.class}`}>
-              <span className="status-dot" />
-              {status.label}
+              <span className="status-dot" />{status.label}
             </span>
             <span className="model-badge">
               {MODEL_ICONS[bot.model] ?? '◈'} {BOT_MODEL_LABELS[bot.model] ?? bot.model}
@@ -95,6 +86,12 @@ export function BotDetail({ bot, onBack, onEdit, onDelete, onToggleStatus }: Bot
           onClick={() => setTab('chat')}
         >
           💬 Probar chat
+        </button>
+        <button
+          className={`detail-tab ${tab === 'whatsapp' ? 'active' : ''}`}
+          onClick={() => setTab('whatsapp')}
+        >
+          📱 WhatsApp
         </button>
       </div>
 
@@ -127,7 +124,6 @@ export function BotDetail({ bot, onBack, onEdit, onDelete, onToggleStatus }: Bot
                 ? <pre className="detail-prompt">{bot.systemPrompt}</pre>
                 : <p className="detail-empty">Sin system prompt configurado.</p>}
             </div>
-
             <div className="detail-card">
               <h3 className="detail-card-title"><span>⚙</span> Configuración</h3>
               <ul className="detail-config-list">
@@ -137,12 +133,10 @@ export function BotDetail({ bot, onBack, onEdit, onDelete, onToggleStatus }: Bot
                 <li><span>Máx. tokens</span><strong>{bot.maxTokens}</strong></li>
               </ul>
             </div>
-
             <div className="detail-card">
               <h3 className="detail-card-title"><span>💬</span> Mensaje de bienvenida</h3>
               <p className="detail-welcome">{bot.welcomeMsg ?? '—'}</p>
             </div>
-
             <div className="detail-card">
               <h3 className="detail-card-title"><span>📅</span> Fechas</h3>
               <ul className="detail-config-list">
@@ -156,6 +150,9 @@ export function BotDetail({ bot, onBack, onEdit, onDelete, onToggleStatus }: Bot
 
       {/* Tab: Chat */}
       {tab === 'chat' && <BotChat bot={bot} />}
+
+      {/* Tab: WhatsApp */}
+      {tab === 'whatsapp' && <WhatsAppConnect bot={bot} />}
     </div>
   );
 }
