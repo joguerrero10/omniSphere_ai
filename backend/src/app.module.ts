@@ -16,6 +16,7 @@ import { WebhooksModule } from "./modules/webhooks/webhooks.module";
 import { QueueModule } from "./queue.module";
 import { RedisModule } from "./redis.module";
 import { BotsModule } from './modules/bots/bots.module';
+import { GroqModule } from './modules/groq/groq.module';
 
 @Module({
   imports: [
@@ -48,6 +49,7 @@ import { BotsModule } from './modules/bots/bots.module';
     WebhooksModule,
     NluModule,
     BotsModule,
+    GroqModule,
   ],
   providers: [
     {

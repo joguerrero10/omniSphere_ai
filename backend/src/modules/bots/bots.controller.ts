@@ -1,4 +1,3 @@
-// src/bots/bots.controller.ts
 import {
   Body,
   Controller,
@@ -10,12 +9,15 @@ import {
   Patch,
   Post,
   Put,
+  Req,
   UseGuards
 } from '@nestjs/common';
 import { BotStatus } from '@prisma/client';
+import { Request as ExpressRequest } from 'express';
 import { GetCompanyId } from '../../common/decorators/bots.decorators';
 import { JwtAuthGuard } from '../../common/guards/jwt.guard';
 import { BotsService } from './bots.service';
+import { ChatBotDto } from './dto/chat-bot.dto';
 import { CreateBotDto } from './dto/create-bot.dto';
 import { UpdateBotDto } from './dto/update-bot.dto';
 
@@ -56,6 +58,15 @@ export class BotsController {
     return this.botsService.create(companyId, createBotDto);
   }
 
+  @Post(':id/chat')
+  @HttpCode(HttpStatus.OK)
+  chat(
+    @Param('id') id: string,
+    @Body() dto: ChatBotDto,
+    @Req() req: ExpressRequest & { user: { tenantId: string } }
+  ) {
+    return this.botsService.chat(id, req.user.tenantId, dto);
+  }
   // PUT /bots/:id → actualizar bot completo
   @Put(':id')
   update(

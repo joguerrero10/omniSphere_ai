@@ -1,4 +1,4 @@
-import { BotModel, BotStatus } from '@prisma/client';
+import { BotStatus } from '@prisma/client';
 import {
   IsEnum,
   IsInt,
@@ -23,8 +23,13 @@ export class CreateBotDto {
   description?: string;
 
   @IsOptional()
-  @IsEnum(BotModel)
-  model?: BotModel;
+  @IsString()
+  @MaxLength(100)
+  model?: string;
+
+  // @IsOptional()
+  // @IsEnum(BotModel)
+  // modelProvider?: BotModel;
 
   @IsOptional()
   @IsString()

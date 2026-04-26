@@ -1,4 +1,8 @@
 export type ExternalLlmProvider = 'groq' | 'openai' | 'anthropic' | 'local';
+export interface ChatCompletionMessage {
+  role: 'system' | 'user' | 'assistant';
+  content: string;
+}
 
 export interface CompleteProviderRequest {
   prompt: string;
@@ -8,6 +12,7 @@ export interface CompleteProviderRequest {
   maxTokens?: number;
   stream?: boolean;
   metadata?: Record<string, unknown>;
+  messages?: ChatCompletionMessage[];
 }
 
 export interface ProviderUsage {

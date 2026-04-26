@@ -34,45 +34,50 @@ export default function DashboardLayout({
           </Link>
 
           {role === "system" && (
-            <Link className="menu-item" to="/empresas">
+            <Link className="menu-item" to="/company">
               Empresas ↗
             </Link>
           )}
 
           {role === "tenant" && (
-            <Link className="menu-item" to="/empresas">
+            <Link className="menu-item" to="/company">
               Mi empresa ↗
             </Link>
           )}
 
-          <button className="menu-item" type="button">
+          <Link className="menu-item" to="/bots">
             Bots ↗
-          </button>
-          <button className="menu-item" type="button">
-            Actividad
-          </button>
-          <button className="menu-item" type="button">
+          </Link>
+
+          <Link className="menu-item" to="/activity">
+            Actividad ↗
+          </Link>
+
+          <Link className="menu-item" to="/conversations">
             Conversaciones ↗
-          </button>
-          <button className="menu-item" type="button">
+          </Link>
+
+          <Link className="menu-item" to="/messages">
             Mensajes ↗
-          </button>
+          </Link>
+
 
           {(role === "system" || role === "tenant") && (
-            <button className="menu-item" type="button">
+
+            <Link className="menu-item" to="/users">
               Usuarios ↗
-            </button>
+            </Link>
           )}
 
           {role === "system" && (
             <>
               <p className="menu-label">SISTEMA</p>
-              <button className="menu-item" type="button">
+              <Link className="menu-item" to="/config">
                 Config ↗
-              </button>
-              <button className="menu-item" type="button">
+              </Link>
+              <Link className="menu-item" to="/api-keys">
                 API Keys ↗
-              </button>
+              </Link>
             </>
           )}
         </nav>

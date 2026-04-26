@@ -1,3 +1,4 @@
+// src/modules/nlu/providers/groq.provider.ts
 import {
   Injectable,
   Logger,
@@ -5,7 +6,11 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import Groq from 'groq-sdk';
-import { CompleteProviderRequest, ExternalLlmAdapter, ProviderResult } from '../interfaces/llm-provider.interface';
+import {
+  CompleteProviderRequest,
+  ExternalLlmAdapter,
+  ProviderResult,
+} from '../interfaces/llm-provider.interface';
 
 @Injectable()
 export class GroqProvider implements ExternalLlmAdapter {
@@ -24,16 +29,23 @@ export class GroqProvider implements ExternalLlmAdapter {
     }
 
     try {
+      // Si viene messages[] (chat multi-turn) úsalos directamente.
+      // Si no, construir desde prompt clásico.
+      const messages: Groq.Chat.ChatCompletionMessageParam[] =
+        req.messages && req.messages.length > 0
+          ? req.messages.map((m) => ({ role: m.role, content: m.content }))
+          : [
+            ...(req.systemPrompt
+              ? [{ role: 'system' as const, content: req.systemPrompt }]
+              : []),
+            { role: 'user' as const, content: req.prompt },
+          ];
+
       const response = await this.client.chat.completions.create({
         model: req.model,
         temperature: req.temperature ?? 0,
         max_tokens: req.maxTokens ?? 512,
-        messages: [
-          ...(req.systemPrompt
-            ? [{ role: 'system' as const, content: req.systemPrompt }]
-            : []),
-          { role: 'user' as const, content: req.prompt },
-        ],
+        messages,
       });
 
       return {
@@ -48,7 +60,10 @@ export class GroqProvider implements ExternalLlmAdapter {
         raw: response,
       };
     } catch (error) {
-      this.logger.error('Groq request failed', error instanceof Error ? error.stack : undefined);
+      this.logger.error(
+        'Groq request failed',
+        error instanceof Error ? error.stack : undefined,
+      );
       throw error;
     }
   }

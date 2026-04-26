@@ -40,6 +40,7 @@ model Tenant {
   flows           Flow[]
   channels        Channel[]
   llmTraces       LlmTrace[]
+  bots            Bot[]
 }
 
 model AuditLog {
@@ -691,19 +692,12 @@ enum BotStatus {
   DRAFT
 }
 
-enum BotModel {
-  GPT_4O
-  GPT_4O_MINI
-  CLAUDE_3_5_SONNET
-  CLAUDE_3_HAIKU
-  GEMINI_PRO
-}
 
 model Bot {
   id            String    @id @default(cuid())
   name          String
   description   String?
-  model         BotModel  @default(GPT_4O_MINI)
+  model         String    @default("llama3-8b-8192")
   systemPrompt  String?   @db.Text
   temperature   Float     @default(0.7)
   maxTokens     Int       @default(1000)
@@ -711,8 +705,8 @@ model Bot {
   avatarUrl     String?
   welcomeMsg    String?   @default("¡Hola! ¿En qué puedo ayudarte?")
 
-  companyId     String
-  company       Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  tenantId      String
+  tenant        Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   totalConversations Int @default(0)
   totalMessages      Int @default(0)
@@ -723,15 +717,7 @@ model Bot {
   conversations Conversation[]
 
   @@map("bots")
-  @@index([companyId])
-}
-
-model Company {
-  id    String @id @default(cuid())
-  name  String
-  bots  Bot[]
-  
-  @@map("companies")
+  @@index([tenantId])
 }
 
 enum MessageRole {

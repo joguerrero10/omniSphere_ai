@@ -1,5 +1,6 @@
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 
+import { lazy } from 'react';
 import { AuthProvider } from "./context/AuthProvider";
 import LoginPage from "./pages/auth/LoginPage";
 import ProtectedRoute from "./pages/auth/ProtectedRoute";
@@ -9,6 +10,9 @@ import UnauthorizedPage from "./pages/auth/UnauthorizedPage";
 import CompaniesPage from "./pages/companies/CompaniesPage";
 import CompanyDetailPage from "./pages/companies/CompanyDetailPage";
 import DashboardPage from "./pages/dashboard/DashboardPage";
+
+const BotsPage = lazy(() => import('./pages/bots/BotsPage'));
+
 
 export default function App() {
   return (
@@ -34,10 +38,10 @@ export default function App() {
             }
           />
           <Route element={<RoleRoute allowedRoles={["ADMIN_SISTEMA", "ADMIN_TENANT"]} />}>
-            <Route path="/empresas" element={<CompaniesPage />} />
+            <Route path="/company" element={<CompaniesPage />} />
           </Route>
           <Route
-            path="/empresas/:id"
+            path="/company/:id"
             element={
               <ProtectedRoute>
                 <CompanyDetailPage />
@@ -48,6 +52,7 @@ export default function App() {
             <Route path="/config" element={<div>Config</div>} />
             <Route path="/api-keys" element={<div>API Keys</div>} />
           </Route>
+          <Route path="/bots" element={<BotsPage />} />
           <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
       </BrowserRouter>
