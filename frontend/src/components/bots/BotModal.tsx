@@ -134,17 +134,8 @@ export function BotModal({ bot, onClose, onSave }: BotModalProps) {
                     <label>Modelo IA</label>
                     <select name="model" value={form.model} onChange={handleChange}>
                       <optgroup label="Groq — Llama">
-                        <option value="llama-3.1-8b-instant">Llama 3.1 8B Instant</option>
-                        <option value="llama-3.1-70b-versatile">Llama 3.1 70B Versatile</option>
+                        <option value="llama-3.1-8b-instant">llama-3.1-8b-instant</option>
                         <option value="llama-3.3-70b-versatile">Llama 3.3 70B Versatile</option>
-                      </optgroup>
-                      <optgroup label="Groq — Otros">
-                        <option value="mixtral-8x7b-32768">Mixtral 8x7B</option>
-                        <option value="gemma2-9b-it">Gemma 2 9B</option>
-                      </optgroup>
-                      <optgroup label="OpenAI">
-                        <option value="gpt-4o">GPT-4o</option>
-                        <option value="gpt-4o-mini">GPT-4o Mini</option>
                       </optgroup>
                     </select>
                     <span className="hint">Escribe o selecciona un modelo</span>
