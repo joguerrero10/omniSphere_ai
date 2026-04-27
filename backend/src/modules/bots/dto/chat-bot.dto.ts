@@ -21,7 +21,7 @@ export class ChatMessageDto {
 export class ChatBotDto {
   @IsArray()
   @ArrayMinSize(1)
-  @ArrayMaxSize(100) // máx 100 mensajes de historial
+  @ArrayMaxSize(100)
   @ValidateNested({ each: true })
   @Type(() => ChatMessageDto)
   messages!: ChatMessageDto[];

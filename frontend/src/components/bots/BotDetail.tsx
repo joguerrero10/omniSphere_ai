@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { Bot } from '../../types/bots';
 import { BOT_MODEL_LABELS, BOT_STATUS_LABELS } from '../../types/bots';
 import { BotChat } from './BotChat';
+import { BotRules } from './BotRules';
 import { WhatsAppConnect } from './WhatsAppConnect';
 
 interface BotDetailProps {
@@ -23,7 +24,7 @@ const STATUS_CONFIG = {
   DRAFT: { label: 'Borrador', class: 'status-draft' },
 };
 
-type DetailTab = 'overview' | 'chat' | 'whatsapp';
+type DetailTab = 'overview' | 'chat' | 'whatsapp' | 'rules';
 
 export function BotDetail({ bot, onBack, onEdit, onDelete, onToggleStatus }: BotDetailProps) {
   const [tab, setTab] = useState<DetailTab>('overview');
@@ -73,7 +74,7 @@ export function BotDetail({ bot, onBack, onEdit, onDelete, onToggleStatus }: Bot
         </div>
       </div>
 
-      {/* Tabs */}
+      { }
       <div className="detail-tabs">
         <button
           className={`detail-tab ${tab === 'overview' ? 'active' : ''}`}
@@ -93,9 +94,15 @@ export function BotDetail({ bot, onBack, onEdit, onDelete, onToggleStatus }: Bot
         >
           📱 WhatsApp
         </button>
+        <button
+          className={`detail-tab ${tab === 'rules' ? 'active' : ''}`}
+          onClick={() => setTab('rules')}
+        >
+          ☰ Respuestas
+        </button>
       </div>
 
-      {/* Tab: Información */}
+      { }
       {tab === 'overview' && (
         <>
           <div className="detail-stats-row">
@@ -153,6 +160,9 @@ export function BotDetail({ bot, onBack, onEdit, onDelete, onToggleStatus }: Bot
 
       {/* Tab: WhatsApp */}
       {tab === 'whatsapp' && <WhatsAppConnect bot={bot} />}
+
+      {/* Tab: Respuestas */}
+      {tab === 'rules' && <BotRules bot={bot} />}
     </div>
   );
 }

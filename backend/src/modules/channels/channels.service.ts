@@ -1,4 +1,3 @@
-// src/modules/channels/channels.service.ts
 import {
   BadRequestException,
   ForbiddenException,
@@ -10,6 +9,7 @@ import {
 import { Channel, ChannelStatus, ChannelType, MessageRole, Prisma } from '@prisma/client';
 import { createHmac, timingSafeEqual } from 'crypto';
 import { PrismaService } from '../../database/prisma.service';
+import { BotRulesService } from '../bots/bot-rules.service';
 import { GroqProvider } from '../nlu/providers/groq.provider';
 import { CreateChannelDto } from './dto/create-channel.dto';
 import { SendChannelMessageDto } from './dto/send-channel-message.dto';
@@ -18,6 +18,7 @@ import { UpdateChannelDto } from './dto/update-channel.dto';
 type NormalizedIncomingMessage = {
   externalUserId: string;
   text: string;
+  buttonId?: string;
   raw: Record<string, unknown>;
 };
 
@@ -36,7 +37,8 @@ export class ChannelsService {
 
   constructor(
     private readonly prisma: PrismaService,
-    private readonly groq: GroqProvider,   // ← NUEVO
+    private readonly groq: GroqProvider,
+    private readonly botRules: BotRulesService,
   ) { }
 
   private toPrismaJsonObject(
@@ -44,8 +46,6 @@ export class ChannelsService {
   ): Prisma.InputJsonValue {
     return (value ?? {}) as Prisma.InputJsonValue;
   }
-
-  // ─── CRUD ─────────────────────────────────────────────────────
 
   async create(tenantId: string, dto: CreateChannelDto) {
     if (dto.flowId) {
@@ -140,8 +140,6 @@ export class ChannelsService {
     return this.prisma.channel.delete({ where: { id } });
   }
 
-  // ─── Webhook ──────────────────────────────────────────────────
-
   async verifyWebhook(id: string, query: Record<string, unknown>) {
     const channel = await this.prisma.channel.findFirst({ where: { id } });
     if (!channel) throw new NotFoundException('Channel not found');
@@ -193,61 +191,140 @@ export class ChannelsService {
     const normalizedMessage = this.normalizeIncomingMessage(channel.type, payload);
 
     if (!normalizedMessage) {
-      return {
-        ok: true,
-        ignored: true,
-        reason: 'Webhook received but no inbound user text message was found',
-      };
+      return { ok: true, ignored: true, reason: 'No inbound user text message' };
     }
 
-    // ─── Si hay un bot vinculado → guardar + responder con Groq ──
-    if (channel.botId) {
-      // Guardamos el mensaje y obtenemos la respuesta de Groq en paralelo
-      const [, replyText] = await Promise.all([
-        this.saveMessage(channel.botId, normalizedMessage.text, MessageRole.USER, normalizedMessage.externalUserId),
-        this.generateBotReply(channel.botId, normalizedMessage.text),
-      ]);
+    if (!channel.botId) {
+      return { ok: true, ignored: true, reason: 'No bot linked to this channel' };
+    }
 
-      if (replyText) {
-        // Guardar respuesta del asistente en la BD
-        await this.saveMessage(channel.botId, replyText, MessageRole.ASSISTANT, null);
+    await this.saveMessage(channel.botId, normalizedMessage.text, MessageRole.USER, normalizedMessage.externalUserId);
 
-        // Enviar respuesta por WhatsApp
-        await this.sendWhatsapp(channel, {
-          to: normalizedMessage.externalUserId,
-          message: replyText,
-        }).catch((err) => {
-          this.logger.error('Failed to send WhatsApp reply', err);
-        });
+    const bot = await this.prisma.bot.findUnique({ where: { id: channel.botId } });
+    if (!bot) return { ok: true, ignored: true, reason: 'Bot not found' };
+
+    let replyText: string | null = null;
+    let replyButtons: { id: string; title: string }[] = [];
+
+    if ((bot as any).responseMode === 'PREDEFINED') {
+      const match = await this.botRules.resolveResponse(
+        channel.botId,
+        normalizedMessage.text,
+        normalizedMessage.buttonId,
+      );
+      if (!match) {
+        return { ok: true, channelId: channel.id, ignored: true, reason: 'No matching rule' };
       }
+      replyText = match.responseText;
+      replyButtons = match.buttons;
+    } else {
+      replyText = await this.generateGroqReply(bot, normalizedMessage.text);
+    }
+
+    if (replyText) {
+      await this.saveMessage(channel.botId, replyText, MessageRole.ASSISTANT, null);
+
+      await this.sendWhatsappMessage(channel, normalizedMessage.externalUserId, replyText, replyButtons)
+        .catch((err) => this.logger.error('Failed to send WhatsApp reply', err));
     }
 
     return {
       ok: true,
       channelId: channel.id,
-      botId: channel.botId ?? null,
-      received: {
-        from: normalizedMessage.externalUserId,
-        text: normalizedMessage.text,
-      },
+      botId: channel.botId,
+      mode: bot.responseMode,
+      received: { from: normalizedMessage.externalUserId, text: normalizedMessage.text },
     };
   }
 
-  // ─── Generar respuesta con Groq ───────────────────────────────
-  private async generateBotReply(botId: string, userText: string): Promise<string | null> {
-    try {
-      const bot = await this.prisma.bot.findUnique({ where: { id: botId } });
-      if (!bot) return null;
+  private async sendWhatsappMessage(
+    channel: Channel,
+    to: string,
+    text: string,
+    buttons: { id: string; title: string }[] = [],
+  ) {
+    const cfg = this.getWhatsappConfig(channel);
+    const apiVersion = cfg.apiVersion ?? 'v23.0';
+    const url = `https://graph.facebook.com/${apiVersion}/${cfg.phoneNumberId}/messages`;
 
-      // Obtener historial reciente de la conversación (últimos 10 mensajes)
+    let body: Record<string, unknown>;
+
+    if (buttons.length > 0 && buttons.length <= 3) {
+      body = {
+        messaging_product: 'whatsapp',
+        recipient_type: 'individual',
+        to: this.normalizePhoneNumber(to),
+        type: 'interactive',
+        interactive: {
+          type: 'button',
+          body: { text },
+          action: {
+            buttons: buttons.map((b) => ({
+              type: 'reply',
+              reply: { id: b.id, title: b.title.slice(0, 20) },
+            })),
+          },
+        },
+      };
+    } else if (buttons.length > 3) {
+      body = {
+        messaging_product: 'whatsapp',
+        recipient_type: 'individual',
+        to: this.normalizePhoneNumber(to),
+        type: 'interactive',
+        interactive: {
+          type: 'list',
+          body: { text },
+          action: {
+            button: 'Ver opciones',
+            sections: [{
+              title: 'Menú',
+              rows: buttons.slice(0, 10).map((b) => ({
+                id: b.id,
+                title: b.title.slice(0, 24),
+              })),
+            }],
+          },
+        },
+      };
+    } else {
+      body = {
+        messaging_product: 'whatsapp',
+        recipient_type: 'individual',
+        to: this.normalizePhoneNumber(to),
+        type: 'text',
+        text: { preview_url: false, body: text },
+      };
+    }
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${cfg.accessToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body),
+    });
+
+    if (!response.ok) {
+      const errText = await response.text().catch(() => '');
+      this.logger.error(`WhatsApp send failed ${response.status}: ${errText}`);
+      throw new Error(`WhatsApp send failed: ${response.status}`);
+    }
+
+    return response.json();
+  }
+
+  private async generateGroqReply(
+    bot: { model: string; temperature: number; maxTokens: number; systemPrompt: string | null; id: string },
+    userText: string,
+  ): Promise<string | null> {
+    try {
       const conversation = await this.prisma.conversation.findFirst({
-        where: { botId },
+        where: { botId: bot.id },
         orderBy: { createdAt: 'desc' },
         include: {
-          messages: {
-            orderBy: { createdAt: 'asc' },
-            take: 10,
-          },
+          messages: { orderBy: { createdAt: 'asc' }, take: 10 },
         },
       });
 
@@ -255,8 +332,6 @@ export class ChannelsService {
         role: m.role === MessageRole.USER ? 'user' as const : 'assistant' as const,
         content: m.content,
       }));
-
-      // Agregar el mensaje actual
       history.push({ role: 'user', content: userText });
 
       const result = await this.groq.complete({
@@ -265,9 +340,7 @@ export class ChannelsService {
         temperature: bot.temperature,
         maxTokens: bot.maxTokens,
         messages: [
-          ...(bot.systemPrompt
-            ? [{ role: 'system' as const, content: bot.systemPrompt }]
-            : []),
+          ...(bot.systemPrompt ? [{ role: 'system' as const, content: bot.systemPrompt }] : []),
           ...history,
         ],
       });
@@ -279,7 +352,6 @@ export class ChannelsService {
     }
   }
 
-  // ─── Guardar mensaje en Conversation/Message ──────────────────
   private async saveMessage(
     botId: string,
     content: string,
@@ -308,7 +380,6 @@ export class ChannelsService {
       },
     });
 
-    // Actualizar contador del bot
     await this.prisma.bot.update({
       where: { id: botId },
       data: { totalMessages: { increment: 1 } },
@@ -329,8 +400,6 @@ export class ChannelsService {
       default: throw new BadRequestException('Unsupported channel type');
     }
   }
-
-  // ─── Helpers (sin cambios) ─────────────────────────────────────
 
   private validateConfigByType(type: ChannelType, config?: Record<string, unknown>) {
     const cfg = config ?? {};
@@ -449,22 +518,33 @@ export class ChannelsService {
     if (!from || !type) return null;
 
     let text: string | null = null;
+    let buttonId: string | null = null;
 
     if (type === 'text') {
       const textObj = this.asRecord(message['text']);
       text = this.readString(textObj?.['body']);
+
     } else if (type === 'button') {
       const buttonObj = this.asRecord(message['button']);
       text = this.readString(buttonObj?.['text']);
+      buttonId = this.readString(buttonObj?.['payload']);
+
     } else if (type === 'interactive') {
       const interactive = this.asRecord(message['interactive']);
       const buttonReply = this.asRecord(interactive?.['button_reply']);
       const listReply = this.asRecord(interactive?.['list_reply']);
-      text = this.readString(buttonReply?.['title']) ?? this.readString(listReply?.['title']);
+
+      if (buttonReply) {
+        buttonId = this.readString(buttonReply['id']);
+        text = this.readString(buttonReply['title']);
+      } else if (listReply) {
+        buttonId = this.readString(listReply['id']);
+        text = this.readString(listReply['title']);
+      }
     }
 
-    if (!text) return null;
-    return { externalUserId: from, text, raw: payload };
+    if (!text || !from) return null;
+    return { externalUserId: from, text, buttonId: buttonId ?? undefined, raw: payload };
   }
 
   private getChannelConfig(channel: Channel): Record<string, unknown> {

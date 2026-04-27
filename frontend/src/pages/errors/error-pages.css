@@ -1,0 +1,237 @@
+/* ============================================================
+   ERROR PAGES  —  ep-*  namespace
+   Covers: 401 · 403 · 404 · 500
+   Drop this file at: src/pages/errors/error-pages.css
+   ============================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800;900&display=swap');
+
+/* ── Root ──────────────────────────────────────────────────── */
+.ep-root {
+  min-height: 100vh;
+  background: #080810;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 24px;
+  position: relative;
+  overflow: hidden;
+  font-family: 'DM Sans', -apple-system, sans-serif;
+  color: #eeeef5;
+}
+
+/* ── Grid background ───────────────────────────────────────── */
+.ep-grid {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px);
+  background-size: 56px 56px;
+  mask-image: radial-gradient(ellipse 80% 70% at 50% 50%, black, transparent);
+  pointer-events: none;
+}
+
+/* ── Glow ──────────────────────────────────────────────────── */
+.ep-glow {
+  position: absolute;
+  width: 600px;
+  height: 400px;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  filter: blur(100px);
+  opacity: 0.18;
+  pointer-events: none;
+}
+.ep-glow--purple { background: radial-gradient(ellipse, #6c5ce7, transparent); }
+.ep-glow--yellow { background: radial-gradient(ellipse, #f5c842, transparent); }
+.ep-glow--red    { background: radial-gradient(ellipse, #ff4d6d, transparent); }
+.ep-glow--blue   { background: radial-gradient(ellipse, #4d9fff, transparent); }
+
+/* ── Content ───────────────────────────────────────────────── */
+.ep-content {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 14px;
+  max-width: 500px;
+  width: 100%;
+  animation: ep-rise 0.5s cubic-bezier(0.16,1,0.3,1) both;
+}
+
+@keyframes ep-rise {
+  from { opacity: 0; transform: translateY(24px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Giant code ─────────────────────────────────────────────── */
+.ep-code-wrap {
+  position: relative;
+  line-height: 1;
+  user-select: none;
+  margin-bottom: -8px;
+}
+
+.ep-code {
+  display: block;
+  font-size: clamp(96px, 18vw, 148px);
+  font-weight: 900;
+  letter-spacing: -6px;
+  background: linear-gradient(180deg,
+    rgba(255,255,255,0.10) 0%,
+    rgba(255,255,255,0.03) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ── Status badge ───────────────────────────────────────────── */
+.ep-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+  background: rgba(245,200,66,0.1);
+  border: 1px solid rgba(245,200,66,0.25);
+  color: #f5c842;
+}
+
+/* Per-page badge colors */
+.ep-root--401 .ep-badge,
+.ep-root--403 .ep-badge {
+  background: rgba(245,200,66,0.1);
+  border-color: rgba(245,200,66,0.25);
+  color: #f5c842;
+}
+.ep-root--404 .ep-badge {
+  background: rgba(108,92,231,0.12);
+  border-color: rgba(108,92,231,0.25);
+  color: #a29bfe;
+}
+.ep-root--500 .ep-badge {
+  background: rgba(255,77,109,0.1);
+  border-color: rgba(255,77,109,0.25);
+  color: #ff8fa3;
+}
+
+.ep-badge-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  box-shadow: 0 0 5px currentColor;
+}
+
+/* ── Title & desc ───────────────────────────────────────────── */
+.ep-title {
+  font-size: clamp(26px, 5vw, 36px);
+  font-weight: 800;
+  letter-spacing: -0.8px;
+  margin: 0;
+  line-height: 1.1;
+}
+
+.ep-desc {
+  font-size: 15px;
+  color: #6b6b8a;
+  margin: 0;
+  line-height: 1.7;
+  max-width: 380px;
+}
+
+/* ── Divider ────────────────────────────────────────────────── */
+.ep-divider {
+  width: 40px;
+  height: 1px;
+  background: rgba(255,255,255,0.08);
+}
+
+/* ── Actions ────────────────────────────────────────────────── */
+.ep-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 6px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.ep-btn {
+  padding: 10px 22px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ep-btn--primary {
+  background: #6c5ce7;
+  color: #fff;
+  border: none;
+}
+.ep-btn--primary:hover {
+  background: #8374f0;
+  box-shadow: 0 4px 20px rgba(108,92,231,0.45);
+  transform: translateY(-1px);
+}
+
+.ep-btn--ghost {
+  background: none;
+  color: #eeeef5;
+  border: 1px solid rgba(255,255,255,0.1);
+}
+.ep-btn--ghost:hover {
+  background: rgba(255,255,255,0.05);
+  border-color: rgba(255,255,255,0.2);
+}
+
+.ep-btn--outline {
+  background: none;
+  color: #7878a0;
+  border: 1px solid rgba(255,255,255,0.07);
+}
+.ep-btn--outline:hover {
+  background: rgba(255,255,255,0.04);
+  color: #eeeef5;
+}
+
+.ep-btn--danger {
+  background: rgba(255,77,109,0.1);
+  color: #ff8fa3;
+  border: 1px solid rgba(255,77,109,0.2);
+}
+.ep-btn--danger:hover {
+  background: rgba(255,77,109,0.18);
+  border-color: rgba(255,77,109,0.35);
+  transform: translateY(-1px);
+}
+
+/* ── Footer ─────────────────────────────────────────────────── */
+.ep-footer {
+  font-size: 11px;
+  color: #33334a;
+  margin: 4px 0 0;
+  letter-spacing: 0.3px;
+}
+
+/* ── Responsive ─────────────────────────────────────────────── */
+@media (max-width: 480px) {
+  .ep-actions { flex-direction: column; width: 100%; }
+  .ep-btn     { width: 100%; justify-content: center; }
+  .ep-code    { font-size: 96px; letter-spacing: -4px; }
+}

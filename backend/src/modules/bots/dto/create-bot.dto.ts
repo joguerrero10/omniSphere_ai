@@ -27,10 +27,6 @@ export class CreateBotDto {
   @MaxLength(100)
   model?: string;
 
-  // @IsOptional()
-  // @IsEnum(BotModel)
-  // modelProvider?: BotModel;
-
   @IsOptional()
   @IsString()
   systemPrompt?: string;

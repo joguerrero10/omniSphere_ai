@@ -9,6 +9,7 @@ import { PrismaService } from '../../database/prisma.service';
 import { GroqProvider } from '../nlu/providers/groq.provider';
 import { ChatBotDto } from './dto/chat-bot.dto';
 import { CreateBotDto } from './dto/create-bot.dto';
+import { UpdateBotModeDto } from './dto/update-bot-rule.dto';
 import { UpdateBotDto } from './dto/update-bot.dto';
 
 @Injectable()
@@ -33,6 +34,8 @@ export class BotsService {
         totalMessages: true,
         createdAt: true,
         updatedAt: true,
+        responseMode: true,
+        mainMenuText: true,
       },
     });
   }
@@ -40,9 +43,6 @@ export class BotsService {
   async findOne(id: string, tenantId: string) {
     const bot = await this.prisma.bot.findUnique({
       where: { id },
-      include: {
-        _count: { select: { conversations: true } },
-      },
     });
 
     if (!bot) throw new NotFoundException(`Bot #${id} no encontrado`);
@@ -87,7 +87,6 @@ export class BotsService {
   async chat(id: string, tenantId: string, dto: ChatBotDto) {
     const bot = await this.findOne(id, tenantId);
 
-    // Construir historial con system prompt al inicio
     const messages = [
       ...(bot.systemPrompt
         ? [{ role: 'system' as const, content: bot.systemPrompt }]
@@ -103,7 +102,6 @@ export class BotsService {
       messages,
     });
 
-    // Actualizar contador de mensajes (fire & forget)
     this.prisma.bot
       .update({
         where: { id },
@@ -117,5 +115,23 @@ export class BotsService {
       model: result.model,
       usage: result.usage,
     };
+  }
+  private async checkBotAccess(botId: string, tenantId: string) {
+    const bot = await this.prisma.bot.findUnique({ where: { id: botId } });
+    if (!bot) throw new NotFoundException('Bot not found');
+    if (bot.tenantId !== tenantId) throw new ForbiddenException('No tienes acceso a este bot');
+    return bot;
+  }
+
+  async updateMode(botId: string, tenantId: string, dto: UpdateBotModeDto) {
+    await this.checkBotAccess(botId, tenantId);
+    return this.prisma.bot.update({
+      where: { id: botId },
+      data: {
+        responseMode: dto.responseMode,
+        ...(dto.mainMenuText !== undefined && { mainMenuText: dto.mainMenuText }),
+      },
+      select: { id: true, responseMode: true, mainMenuText: true },
+    });
   }
 }

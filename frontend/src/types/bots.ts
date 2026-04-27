@@ -1,13 +1,5 @@
 export type BotStatus = 'ACTIVE' | 'INACTIVE' | 'DRAFT';
 
-// export type BotModel =
-//   | 'GPT_4O'
-//   | 'GPT_4O_MINI'
-//   | 'CLAUDE_3_5_SONNET'
-//   | 'CLAUDE_3_HAIKU'
-//   | 'GEMINI_PRO'
-//   | 'GROQ';
-
 export type BotModel = string;
 
 export interface Bot {
@@ -25,6 +17,8 @@ export interface Bot {
   totalMessages: number;
   createdAt: string;
   updatedAt: string;
+  responseMode?: BotResponseMode;
+  mainMenuText?: string;
 }
 
 export interface CreateBotPayload {
@@ -41,16 +35,6 @@ export interface CreateBotPayload {
 
 export type UpdateBotPayload = Partial<CreateBotPayload>;
 
-// Se comenta para futuro ampliar y colocar más modelos se deja la logica por los momentos
-// export const BOT_MODEL_LABELS: Record<BotModel, string> = {
-//   GPT_4O: 'GPT-4o',
-//   GPT_4O_MINI: 'GPT-4o Mini',
-//   CLAUDE_3_5_SONNET: 'Claude 3.5 Sonnet',
-//   CLAUDE_3_HAIKU: 'Claude 3 Haiku',
-//   GEMINI_PRO: 'Gemini Pro',
-//   GROQ: 'llama3-8b-8192'
-// };
-
 export const BOT_MODEL_LABELS: Record<string, string> = {
   'llama3-8b-8192': 'Llama 3 8B (Groq)',
   'llama3-70b-8192': 'Llama 3 70B (Groq)',
@@ -65,3 +49,31 @@ export const BOT_STATUS_LABELS: Record<BotStatus, string> = {
   INACTIVE: 'Inactivo',
   DRAFT: 'Borrador',
 };
+
+export type BotResponseMode = 'AI' | 'PREDEFINED';
+
+export interface BotButton { id: string; title: string; }
+
+export interface BotRule {
+  id: string;
+  botId: string;
+  keywords: string[];
+  menuOption?: string | null;
+  responseText: string;
+  buttons?: BotButton[] | null;
+  sortOrder: number;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateBotRulePayload {
+  keywords: string[];
+  menuOption?: string;
+  responseText: string;
+  buttons?: BotButton[];
+  sortOrder?: number;
+  isActive?: boolean;
+}
+
+export type UpdateBotRulePayload = Partial<CreateBotRulePayload>;

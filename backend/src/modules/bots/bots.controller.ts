@@ -19,6 +19,7 @@ import { JwtAuthGuard } from '../../common/guards/jwt.guard';
 import { BotsService } from './bots.service';
 import { ChatBotDto } from './dto/chat-bot.dto';
 import { CreateBotDto } from './dto/create-bot.dto';
+import { UpdateBotModeDto } from './dto/update-bot-rule.dto';
 import { UpdateBotDto } from './dto/update-bot.dto';
 
 interface User {
@@ -33,25 +34,21 @@ interface User {
 export class BotsController {
   constructor(private readonly botsService: BotsService) { }
 
-  // GET /bots → listar todos los bots de la empresa del usuario
   @Get()
   findAll(@GetCompanyId() companyId: string) {
     return this.botsService.findAll(companyId);
   }
 
-  // GET /bots/:id → detalle de un bot
   @Get(':id')
   findOne(@Param('id') id: string, @GetCompanyId() companyId: string,) {
     return this.botsService.findOne(id, companyId);
   }
 
-  // GET /bots/:id/stats → estadísticas del bot
   @Get(':id/stats')
   getStats(@Param('id') id: string, @GetCompanyId() companyId: string,) {
     return this.botsService.getStats(id, companyId);
   }
 
-  // POST /bots → crear bot
   @Post()
   @HttpCode(HttpStatus.CREATED)
   create(@Body() createBotDto: CreateBotDto, @GetCompanyId() companyId: string,) {
@@ -67,7 +64,7 @@ export class BotsController {
   ) {
     return this.botsService.chat(id, req.user.tenantId, dto);
   }
-  // PUT /bots/:id → actualizar bot completo
+
   @Put(':id')
   update(
     @Param('id') id: string,
@@ -77,7 +74,6 @@ export class BotsController {
     return this.botsService.update(id, companyId, updateBotDto);
   }
 
-  // PATCH /bots/:id/status → cambiar solo el estado
   @Patch(':id/status')
   updateStatus(
     @Param('id') id: string,
@@ -87,10 +83,18 @@ export class BotsController {
     return this.botsService.updateStatus(id, companyId, status);
   }
 
-  // DELETE /bots/:id → eliminar bot
   @Delete(':id')
   @HttpCode(HttpStatus.OK)
   remove(@Param('id') id: string, @GetCompanyId() companyId: string,) {
     return this.botsService.remove(id, companyId);
+  }
+
+  @Patch(':id/mode')
+  updateMode(
+    @Param('id') id: string,
+    @Body() dto: UpdateBotModeDto,
+    @GetCompanyId() tenantId: string,
+  ) {
+    return this.botsService.updateMode(id, tenantId, dto);
   }
 }
