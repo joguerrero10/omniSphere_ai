@@ -6,6 +6,7 @@ import { CustomThrottlerGuard } from "./common/guards/custom-throttler.guard";
 import { CorrelationIdInterceptor } from "./common/interceptor/correlation.id.interceptor";
 import { AppConfigModule } from "./config/config.module";
 import { AuthModule } from "./modules/auth/auth.module";
+import { BotsModule } from './modules/bots/bots.module';
 import { ChannelsModule } from "./modules/channels/channels.module";
 import { FlowExecutionsModule } from "./modules/flow-executions/flow-executions.module";
 import { FlowsModule } from "./modules/flows/flows.module";
@@ -15,8 +16,6 @@ import { UsersModule } from "./modules/users/users.module";
 import { WebhooksModule } from "./modules/webhooks/webhooks.module";
 import { QueueModule } from "./queue.module";
 import { RedisModule } from "./redis.module";
-import { BotsModule } from './modules/bots/bots.module';
-import { GroqModule } from './modules/groq/groq.module';
 
 @Module({
   imports: [
@@ -49,7 +48,6 @@ import { GroqModule } from './modules/groq/groq.module';
     WebhooksModule,
     NluModule,
     BotsModule,
-    GroqModule,
   ],
   providers: [
     {

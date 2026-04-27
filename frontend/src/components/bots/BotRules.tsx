@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 
-import { botRulesService } from '../../services/bots-rules.service';
+import { botRulesService } from '../../services/bot-rules.service';
 import type { Bot, BotButton, BotResponseMode, BotRule, CreateBotRulePayload } from '../../types/bots';
 
 interface BotRulesProps { bot: Bot; }
