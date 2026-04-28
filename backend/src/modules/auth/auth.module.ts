@@ -22,7 +22,7 @@ import { JwtStrategy } from "./jwt.strategy";
         signOptions: {
           expiresIn: config.get<"15m" | "1h" | "1d" | "7d">(
             "JWT_EXPIRES_IN",
-            "1d",
+            "1h",
           ),
         },
       }),
