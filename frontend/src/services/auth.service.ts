@@ -8,7 +8,7 @@ export const authService = {
   },
 
   async me() {
-    const { data } = await api.get("/auth/me");
+    const { data } = await api.get("/auth/profile");
     return data;
   },
 };

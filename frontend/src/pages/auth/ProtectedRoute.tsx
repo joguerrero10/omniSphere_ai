@@ -19,15 +19,11 @@ export default function ProtectedRoute({
   }
 
   if (!isAuthenticated || !token) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to="/login" replace state={{ from: location }} />;
   }
 
   if (requireTenant && tenants.length > 1 && !activeTenant) {
     return <Navigate to="/select-tenant" replace />;
-  }
-
-  if (!isAuthenticated || !token) {
-    return <Navigate to="/login" replace state={{ from: location }} />;
   }
 
   return <>{children}</>;

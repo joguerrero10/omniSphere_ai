@@ -8,7 +8,7 @@ export interface AuthContextType {
   token: string | null;
   isAuthenticated: boolean;
   loading: boolean;
-  login: (payload: LoginRequest) => Promise<void>;
+  login: (payload: LoginRequest) => Promise<{ needsTenantSelection: boolean }>;
   logout: () => void;
   setActiveTenantById: (tenantId: string) => void;
 }

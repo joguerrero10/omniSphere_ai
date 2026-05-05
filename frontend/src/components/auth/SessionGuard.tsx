@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../hooks/useAuth';
 
 const WARN_SECONDS = 5 * 60;
 const CHECK_INTERVAL = 10_000;
@@ -27,12 +28,10 @@ function formatCountdown(seconds: number): string {
   return `${m}:${s}`;
 }
 
-const BASE_URL = `${import.meta.env.VITE_API_URL ?? 'http://localhost:3000'}/api`;
-
 async function refreshToken(): Promise<boolean> {
   try {
     const token = localStorage.getItem('accessToken');
-    const res = await fetch(`${BASE_URL}/auth/refresh`, {
+    const res = await fetch('/api/auth/refresh', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -52,16 +51,9 @@ async function refreshToken(): Promise<boolean> {
   }
 }
 
-function logout(navigate: ReturnType<typeof useNavigate>) {
-  localStorage.removeItem('accessToken');
-  localStorage.removeItem('authUser');
-  localStorage.removeItem('tenantId');
-  localStorage.removeItem('tenants');
-  navigate('/login', { replace: true });
-}
-
 export function SessionGuard({ children }: Props) {
   const navigate = useNavigate();
+  const { logout } = useAuth();
   const [remaining, setRemaining] = useState<number | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -74,7 +66,8 @@ export function SessionGuard({ children }: Props) {
 
       // Sin token → logout inmediato
       if (!exp) {
-        logout(navigate);
+        logout();
+        navigate('/login', { replace: true });
         return;
       }
 
@@ -82,7 +75,8 @@ export function SessionGuard({ children }: Props) {
 
       // Token expirado → logout inmediato
       if (secs === 0) {
-        logout(navigate);
+        logout();
+        navigate('/login', { replace: true });
         return;
       }
 
@@ -114,7 +108,8 @@ export function SessionGuard({ children }: Props) {
         const next = prev - 1;
         if (next <= 0) {
           clearInterval(t);
-          logout(navigate);
+          logout();
+          navigate('/login', { replace: true });
         }
         return next;
       });
@@ -138,7 +133,7 @@ export function SessionGuard({ children }: Props) {
     }
   };
 
-  const handleLogout = () => logout(navigate);
+  const handleLogout = () => { logout(); navigate('/login', { replace: true }); };
 
   const urgent = remaining !== null && remaining <= 60;
 

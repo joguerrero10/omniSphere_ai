@@ -16,7 +16,7 @@ export default function RoleRoute({ allowedRoles }: Props) {
   const hasAccess = user.roles.some((role) => allowedRoles.includes(role));
 
   if (!hasAccess) {
-    return <Navigate to="/unauthorized" replace />;
+    return <Navigate to="/401" replace />;
   }
 
   return <Outlet />;

@@ -49,26 +49,6 @@ export default function DashboardLayout({
             Bots ↗
           </Link>
 
-          <Link className="menu-item" to="/activity">
-            Actividad ↗
-          </Link>
-
-          <Link className="menu-item" to="/conversations">
-            Conversaciones ↗
-          </Link>
-
-          <Link className="menu-item" to="/messages">
-            Mensajes ↗
-          </Link>
-
-
-          {(role === "system" || role === "tenant") && (
-
-            <Link className="menu-item" to="/users">
-              Usuarios ↗
-            </Link>
-          )}
-
           {role === "system" && (
             <>
               <p className="menu-label">SISTEMA</p>

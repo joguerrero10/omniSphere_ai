@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { authService } from "../services/auth.service";
 import type { AuthUser, LoginRequest, Tenant } from "../types/auth.types";
 import { AuthContext } from "./AuthContext";
@@ -33,7 +33,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return parsed.find((t) => t.id === savedTenantId) ?? null;
   });
 
-  const login = async (payload: LoginRequest) => {
+  const logout = useCallback(() => {
+    setToken(null);
+    setUser(null);
+    setTenants([]);
+    setActiveTenant(null);
+
+    localStorage.removeItem(ACCESS_TOKEN_KEY);
+    localStorage.removeItem(USER_KEY);
+    localStorage.removeItem(TENANTS_KEY);
+    localStorage.removeItem(TENANT_ID_KEY);
+  }, []);
+
+  // Auto-logout when JWT expires
+  useEffect(() => {
+    if (!token) return;
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      if (typeof payload.exp !== 'number') return;
+      const msUntilExpiry = payload.exp * 1000 - Date.now();
+      if (msUntilExpiry <= 0) { logout(); return; }
+      const timer = setTimeout(logout, msUntilExpiry);
+      return () => clearTimeout(timer);
+    } catch { /* non-standard token */ }
+  }, [token, logout]);
+
+  const login = async (payload: LoginRequest): Promise<{ needsTenantSelection: boolean }> => {
     const response = await authService.login(payload);
 
     if (!response?.access_token || !response?.user) {
@@ -41,12 +66,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     const derivedTenants: Tenant[] = response.user.tenantId
-      ? [
-        {
-          id: response.user.tenantId,
-          name: "Tenant principal",
-        },
-      ]
+      ? [{ id: response.user.tenantId, name: "Tenant principal" }]
       : [];
 
     const defaultTenantId = response.user.tenantId ?? null;
@@ -62,8 +82,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     let tenantToActivate: Tenant | null = null;
 
     if (defaultTenantId) {
-      tenantToActivate =
-        derivedTenants.find((t) => t.id === defaultTenantId) ?? null;
+      tenantToActivate = derivedTenants.find((t) => t.id === defaultTenantId) ?? null;
     } else if (derivedTenants.length === 1) {
       tenantToActivate = derivedTenants[0];
     }
@@ -75,6 +94,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setActiveTenant(null);
       localStorage.removeItem(TENANT_ID_KEY);
     }
+
+    return { needsTenantSelection: derivedTenants.length > 1 && !tenantToActivate };
   };
 
   const setActiveTenantById = (tenantId: string) => {
@@ -86,18 +107,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } else {
       localStorage.removeItem(TENANT_ID_KEY);
     }
-  };
-
-  const logout = () => {
-    setToken(null);
-    setUser(null);
-    setTenants([]);
-    setActiveTenant(null);
-
-    localStorage.removeItem(ACCESS_TOKEN_KEY);
-    localStorage.removeItem(USER_KEY);
-    localStorage.removeItem(TENANTS_KEY);
-    localStorage.removeItem(TENANT_ID_KEY);
   };
 
   const loading = false;

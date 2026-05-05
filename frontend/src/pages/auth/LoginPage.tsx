@@ -6,7 +6,7 @@ import { useAuth } from "../../hooks/useAuth";
 
 export default function LoginPage() {
   const navigate = useNavigate();
-  const { login, tenants, activeTenant } = useAuth();
+  const { login } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -18,12 +18,8 @@ export default function LoginPage() {
     setError("");
     setSubmitting(true);
     try {
-      await login({ email, password });
-      if (tenants.length > 1 && !activeTenant) {
-        navigate("/select-tenant");
-      } else {
-        navigate("/dashboard");
-      }
+      const { needsTenantSelection } = await login({ email, password });
+      navigate(needsTenantSelection ? "/select-tenant" : "/dashboard");
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : "Credenciales inválidas";
       setError(errorMessage);
