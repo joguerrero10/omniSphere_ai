@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { PrismaService } from 'src/database/prisma.service';
+import { PrismaService } from '../../database/prisma.service';
 import { GroqProvider } from '../nlu/providers/groq.provider';
 import { BotRulesController } from './bot-rules.controller';
 import { BotRulesService } from './bot-rules.service';
