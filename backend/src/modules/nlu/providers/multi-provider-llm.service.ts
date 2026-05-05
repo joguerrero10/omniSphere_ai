@@ -41,7 +41,7 @@ export class MultiProviderLlmService {
     }
 
     throw new ServiceUnavailableException(
-      `Todos los proveedores fallaron: ${[...tried].join(', ')}`,
+      `All providers failed: ${[...tried].join(', ')}`,
       { cause: lastError as Error },
     );
   }
@@ -56,7 +56,7 @@ export class MultiProviderLlmService {
         return this.anthropicProvider;
       default:
         throw new ServiceUnavailableException(
-          `Proveedor no soportado: ${provider}`,
+          `Unsupported provider: ${provider}`,
         );
     }
   }

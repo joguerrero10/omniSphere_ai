@@ -2,7 +2,6 @@ import { Injectable } from '@nestjs/common';
 import {
   collectDefaultMetrics,
   Counter,
-  Gauge,
   Histogram,
   Registry,
 } from 'prom-client';
@@ -17,7 +16,6 @@ export class MetricsService {
   public readonly llmCacheMissesTotal: Counter<string>;
   public readonly llmFailuresTotal: Counter<string>;
   public readonly llmTokensTotal: Counter<string>;
-  public readonly queueJobsActive: Gauge<string>;
 
   constructor() {
     this.registry = new Registry();
@@ -25,14 +23,14 @@ export class MetricsService {
 
     this.llmRequestsTotal = new Counter({
       name: 'llm_requests_total',
-      help: 'Total de requests al LLM',
+      help: 'Total LLM requests',
       labelNames: ['provider', 'model', 'task'],
       registers: [this.registry],
     });
 
     this.llmLatencyMs = new Histogram({
       name: 'llm_latency_ms',
-      help: 'Latencia de requests LLM en ms',
+      help: 'LLM request latency in milliseconds',
       labelNames: ['provider', 'model', 'task'],
       buckets: [50, 100, 250, 500, 1000, 2000, 5000, 10000],
       registers: [this.registry],
@@ -40,36 +38,29 @@ export class MetricsService {
 
     this.llmCacheHitsTotal = new Counter({
       name: 'llm_cache_hits_total',
-      help: 'Total de hits del caché',
+      help: 'Total LLM cache hits',
       labelNames: ['model'],
       registers: [this.registry],
     });
 
     this.llmCacheMissesTotal = new Counter({
       name: 'llm_cache_misses_total',
-      help: 'Total de misses del caché',
+      help: 'Total LLM cache misses',
       labelNames: ['model'],
       registers: [this.registry],
     });
 
     this.llmFailuresTotal = new Counter({
       name: 'llm_failures_total',
-      help: 'Total de fallos LLM',
-      labelNames: ['provider', 'model', 'reason'],
+      help: 'Total LLM request failures after all retries exhausted',
+      labelNames: ['provider', 'model'],
       registers: [this.registry],
     });
 
     this.llmTokensTotal = new Counter({
       name: 'llm_tokens_total',
-      help: 'Tokens consumidos',
+      help: 'Total tokens consumed',
       labelNames: ['provider', 'model', 'type'],
-      registers: [this.registry],
-    });
-
-    this.queueJobsActive = new Gauge({
-      name: 'queue_jobs_active',
-      help: 'Jobs activos en cola',
-      labelNames: ['queue'],
       registers: [this.registry],
     });
   }

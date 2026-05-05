@@ -106,7 +106,7 @@ export class NluService {
     });
 
     if (!entity || entity.tenantId !== tenantId) {
-      throw new NotFoundException("Entity no encontrada");
+      throw new NotFoundException("Entity not found");
     }
 
     return this.prisma.nluEntityValue.create({
@@ -129,15 +129,15 @@ export class NluService {
     });
 
     if (!intent || intent.tenantId !== tenantId) {
-      throw new NotFoundException("Intent no encontrado");
+      throw new NotFoundException("Intent not found");
     }
 
     if (!entity || entity.tenantId !== tenantId) {
-      throw new NotFoundException("Entity no encontrada");
+      throw new NotFoundException("Entity not found");
     }
 
     if (intent.tenantId !== entity.tenantId) {
-      throw new BadRequestException("Intent y Entity deben pertenecer al mismo tenant");
+      throw new BadRequestException("Intent and Entity must belong to the same tenant");
     }
 
     return this.prisma.nluIntentEntity.create({
@@ -196,12 +196,12 @@ export class NluService {
     });
 
     if (utterances.length < 2) {
-      throw new BadRequestException("No hay suficientes utterances para entrenar");
+      throw new BadRequestException("Not enough utterances to train");
     }
 
     const uniqueLabels = [...new Set(utterances.map((u) => u.intent.code))];
     if (uniqueLabels.length < 2) {
-      throw new BadRequestException("Se requieren al menos 2 intents distintos para entrenar");
+      throw new BadRequestException("At least 2 distinct intents are required for training");
     }
 
     const version = await this.prisma.nluModelVersion.create({
@@ -290,7 +290,7 @@ export class NluService {
     });
 
     if (!settings) {
-      throw new BadRequestException("TenantNluSettings no configurado. Ejecuta /settings/init");
+      throw new BadRequestException("TenantNluSettings not configured. Call /settings/init first");
     }
 
     const modelConfig = await this.prisma.nluModelConfig.findFirst({
@@ -302,12 +302,12 @@ export class NluService {
     }
 
     if (!this.registry.has(tenantId)) {
-      throw new BadRequestException("No hay modelo en memoria para este tenant. Ejecuta /train");
+      throw new BadRequestException("No model in memory for this tenant. Call /train first");
     }
 
     const trained = this.registry.get(tenantId);
     if (!trained) {
-      throw new BadRequestException("No hay modelo cargado para este tenant");
+      throw new BadRequestException("No model loaded for this tenant");
     }
 
     const prediction = this.predictIntent(trained.classifier, messageText);
@@ -346,14 +346,11 @@ export class NluService {
         temperature: modelConfig.temperature,
         maxTokens: modelConfig.maxTokens,
         systemPrompt: modelConfig.systemPrompt,
-        prompt: `
-Tenant: ${tenantId}
-Mensaje usuario: ${messageText}
-Intent predicho: ${prediction.intentCode || "UNKNOWN"}
-Confianza: ${prediction.confidence}
-Entidades: ${JSON.stringify(entities)}
-Devuelve una respuesta útil y una interpretación breve del mensaje.
-        `.trim(),
+        prompt: `User message: ${messageText}
+Predicted intent: ${prediction.intentCode || "UNKNOWN"}
+Confidence: ${prediction.confidence}
+Entities: ${JSON.stringify(entities)}
+Respond with a helpful answer and a brief interpretation of the message.`,
       });
     }
 
@@ -609,7 +606,7 @@ Devuelve una respuesta útil y una interpretación breve del mensaje.
     });
 
     if (!tenant) {
-      throw new NotFoundException("Tenant no encontrado");
+      throw new NotFoundException("Tenant not found");
     }
 
     return tenant;
@@ -621,7 +618,7 @@ Devuelve una respuesta útil y una interpretación breve del mensaje.
     });
 
     if (!intent || intent.tenantId !== tenantId) {
-      throw new BadRequestException("Intent no pertenece al tenant");
+      throw new BadRequestException("Intent does not belong to this tenant");
     }
 
     return intent;

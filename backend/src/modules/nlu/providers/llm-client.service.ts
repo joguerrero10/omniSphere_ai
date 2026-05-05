@@ -34,6 +34,8 @@ export class LlmClientService {
 
     this.metrics.llmCacheMissesTotal.inc({ model: route.model });
 
+    const start = Date.now();
+
     const result = await this.resilience.execute(
       `${route.provider}:${route.model}`,
       async () =>
@@ -53,6 +55,8 @@ export class LlmClientService {
       3,
     );
 
+    const latencyMs = Date.now() - start;
+
     const response: LlmResponse = {
       text: result.text,
       model: result.model,
@@ -65,6 +69,11 @@ export class LlmClientService {
       model: result.model,
       task: req.taskType,
     });
+
+    this.metrics.llmLatencyMs.observe(
+      { provider: result.provider, model: result.model, task: req.taskType },
+      latencyMs,
+    );
 
     if (result.usage?.totalTokens) {
       this.metrics.llmTokensTotal.inc(
