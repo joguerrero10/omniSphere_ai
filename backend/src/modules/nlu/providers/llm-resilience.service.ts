@@ -1,4 +1,5 @@
 import { Injectable, ServiceUnavailableException } from '@nestjs/common';
+import { MetricsService } from '../metrics/metrics.service';
 
 type CircuitState = 'CLOSED' | 'OPEN' | 'HALF_OPEN';
 
@@ -15,6 +16,8 @@ export class LlmResilienceService {
   private readonly failureThreshold = 3;
   private readonly recoveryTimeMs = 20_000;
 
+  constructor(private readonly metrics: MetricsService) { }
+
   async execute<T>(
     key: string,
     operation: () => Promise<T>,
@@ -25,11 +28,11 @@ export class LlmResilienceService {
     const circuit = this.circuits.get(key)!;
     if (circuit.state === 'OPEN') {
       throw new ServiceUnavailableException(
-        `Circuit breaker OPEN para ${key}`,
+        `Circuit breaker OPEN for ${key}`,
       );
     }
 
-    let lastError: any;
+    let lastError: unknown;
 
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
@@ -47,7 +50,17 @@ export class LlmResilienceService {
       }
     }
 
+    const { provider, model } = this.parseKey(key);
+    this.metrics.llmFailuresTotal.inc({ provider, model });
+
     throw lastError;
+  }
+
+  private parseKey(key: string): { provider: string; model: string } {
+    const idx = key.indexOf(':');
+    return idx >= 0
+      ? { provider: key.slice(0, idx), model: key.slice(idx + 1) }
+      : { provider: key, model: 'unknown' };
   }
 
   private ensureCircuitState(key: string) {

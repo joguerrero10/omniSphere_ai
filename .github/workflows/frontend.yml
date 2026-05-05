@@ -1,4 +1,4 @@
-name: Frontend CI/CD
+name: Frontend CI
 
 on:
   push:
@@ -7,24 +7,30 @@ on:
     branches:
       - main
       - dev
-      - '**'
   pull_request:
+    paths:
+      - "frontend/**"
     branches:
       - main
       - dev
-      - '**'
 
 jobs:
-  deploy:
+  build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-node@v3
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
 
       - name: Install deps
-        run: cd frontend && npm install
+        run: cd frontend && npm ci
+
+      - name: Typecheck
+        run: cd frontend && npm run typecheck
 
       - name: Build
         run: cd frontend && npm run build

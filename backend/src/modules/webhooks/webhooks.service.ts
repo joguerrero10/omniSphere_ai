@@ -158,13 +158,4 @@ export class WebhooksService {
     return value as Prisma.InputJsonValue;
   }
 
-  private toOptionalPrismaJson(
-    value: Record<string, unknown> | undefined,
-  ): Prisma.InputJsonValue | undefined {
-    if (value === undefined) {
-      return undefined;
-    }
-
-    return value as Prisma.InputJsonValue;
-  }
 }
